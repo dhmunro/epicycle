@@ -22,58 +22,77 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-//  mercury      venus      earth       mars     jupiter    saturn
-// 0.2408467  0.61519726  1.0000174  1.8808476  11.862615  29.447498  yr
-// relative to Sun, t in Julian centuries (36525 days):
-// 102.93768193 + 0.32327364*t  lon of Earth's perihelion
-// 100.46457166 + 35999.37244981*t  lon of Earth
-// -23.94362959 + 0.44441088*t  lon of Mars's perihelion
-//  -4.55343205 + 19140.30268499*t  lon of Mars
+/*
+ *  mercury      venus      earth       mars     jupiter    saturn
+ * 0.2408467  0.61519726  1.0000174  1.8808476  11.862615  29.447498  yr
+ * relative to Sun, t in Julian centuries (36525 days):
+ * 102.93768193 + 0.32327364*t  lon of Earth's perihelion
+ * 100.46457166 + 35999.37244981*t  lon of Earth
+ * -23.94362959 + 0.44441088*t  lon of Mars's perihelion
+ *  -4.55343205 + 19140.30268499*t  lon of Mars
+ *
+ *       venus      earth       mars
+ * a  0.72333566  1.00000261  1.52371034
+ * e  0.00677672  0.01671123  0.09339410
+ *
+ * Max elongation when inner planet at aphelion, outer planet at perihelion:
+ *   sin(elong) = apin / perout = (1+ei)/(1-eo) * ai/ao
+ *      max elong = 47.784 for venus from earth
+ *                = 47.392 for earth from mars
+ */
 const [sun0, sunt, mars0, marst] = [
   280.46457166 * Math.PI/180., 35999.37244981/36525. * Math.PI/180.,
   -4.55343205 * Math.PI/180., 19140.30268499/36525. * Math.PI/180.];
 // J2000 obliquity of ecliptic 23.43928 degrees
 
-let jdNow = dayOfDate(new Date());
-let pointingNow = "mars";
+let jdInitial = dayOfDate(new Date());
+let jdNow = jdInitial;
+let pointingNow = "venus";
 const jd2ra = { sun: (jd) => sun0+sunt*jd, mars: (jd) => mars0+marst*jd };
 
 const planets = {};
-const markers = {};
 const labels = {};
 
 let elongmx = 40, elongmn = -40;
+
+function cameraPointing(pointing) {
+  pointingNow = pointing;
+  if (pointingNow == "venus") {
+    labels.venus.visible = true;
+    labels.mars.visible = false;
+    labels.sunmars.visible = false;
+    labels.antisun.visible = false;
+  } else if (pointingNow == "mars") {
+    labels.venus.visible = false;
+    labels.mars.visible = true;
+    labels.sunmars.visible = true;
+    labels.antisun.visible = true;
+  } else if (pointingNow == "sun") {
+    labels.venus.visible = false;
+    labels.mars.visible = false;
+    labels.sunmars.visible = false;
+    labels.antisun.visible = false;
+  } else {
+    labels.venus.visible = false;
+    labels.mars.visible = false;
+    labels.sunmars.visible = false;
+    labels.antisun.visible = false;
+  }
+  jdNow = jdInitial;
+}
 
 function animate() {
   jdNow += 0.6;  // about 10 sec/yr
   setPlanetPositions();
   let rsun = planets.sun.position;
   let z=rsun.z, x=rsun.x;  // rsun=(z,x) and rperp=(-x,z)
-  // let cosa = Math.cos(48.*Math.PI/180.), sina = Math.sin(48.*Math.PI/180.);
-  // planets.jupiter.position.set(cosa*x+sina*z, 0.02, cosa*z-sina*x);
-  // planets.saturn.position.set(cosa*x-sina*z, -0.02, cosa*z+sina*x);
-  // let r = Math.sqrt(x**2 + z**2);
-  // planets.jupiter.position.set(x, r*Math.tan(29.*Math.PI/180.), z);
-  // planets.saturn.position.set(x, -r*Math.tan(29.*Math.PI/180.), z);
-  if (pointingNow == "sun") {
-    labels.venus.visible = true;
-    labels.mars.visible = false;
-    labels.sunmars.visible = false;
+  if (pointingNow == "venus" || pointingNow == "sun") {
     rotateCameraTo(Math.atan2(x, z));
   } else if (pointingNow == "mars") {
     let rmars = planets.mars.position;
     [x, z] = [rmars.x-rsun.x, rmars.z-rsun.z];
-    // let ra = jd2ra[pointingNow](jdNow);
-    // if (ra > 2*Math.PI) ra -= 2*Math.PI;
-    labels.venus.visible = false;
-    labels.mars.visible = true;
-    labels.sunmars.visible = true;
-    // markers.antisun.position.set(Math.sin(ra), 0, Math.cos(ra));
     rotateCameraTo(Math.atan2(x, z));
   }
-  // let ra = jd2ra[pointingNow](jdNow);
-  // if (ra > 2*Math.PI) ra -= 2*Math.PI;
-  // rotateCameraTo(ra);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
@@ -100,7 +119,6 @@ function setPlanetPositions() {
 function rotateCameraTo(ra) {
   const [x, z] = [Math.sin(ra), Math.cos(ra)];
   camera.lookAt(x, 0, z);
-  // controls.update();
 }
 
 function getFloat32Geom(nVerts, itemSize, pointGen) {
@@ -118,6 +136,11 @@ function getFloat32Geom(nVerts, itemSize, pointGen) {
 }
 
 function setupSky() {
+  // See https://svs.gsfc.nasa.gov/4851
+  // Converted with exrtopng from http://scanline.ca/exrtools/ then
+  // equirectangular to cubemap using images/starmapper.py script in this repo.
+  // The starmapper script will also produce equitorial and galactic
+  // coordinate oriented cubes.
   const textureMaps = [  // URLs of the six faces of the cube map
     "starmap_2020_4k_rt.png",
     "starmap_2020_4k_lf.png",
@@ -145,7 +168,7 @@ function setupSky() {
   scene.background = new THREE.CubeTextureLoader()
     .setPath("images/")
     .load(textureMaps);
-  scene.backgroundIntensity = 0.3  // 0.3-0.4 fades to less distracting level
+  scene.backgroundIntensity = 0.5  // 0.3-0.4 fades to less distracting level
   // scene.backgroundBlurriness = 0.04
 
   // controls = new OrbitControls(camera, renderer.domElement);
@@ -163,6 +186,20 @@ function setupSky() {
   const eMat = new THREE.LineBasicMaterial({color: 0x446644});
   const ecliptic = new THREE.LineLoop(geom, eMat);
   scene.add(ecliptic);
+  const geom2 = getFloat32Geom(
+    200, 3, function*(nVerts) {
+      let dtheta = 2*Math.PI / nVerts;
+      let eps = 23.43928 * Math.PI/180.;
+      let [ce, se] = [Math.cos(eps), Math.sin(eps)];
+      for (let i=0 ; i<nVerts ; i++) {
+        let theta = i*dtheta;
+        // theta is RA, celestial +x -> +z, celestial +y -> +x
+        let [x, y] = [100*Math.cos(theta), 100*Math.sin(theta)];
+        yield [y*ce, -y*se, x];
+      }
+    });
+  const equator = new THREE.LineLoop(geom2, eMat);
+  scene.add(equator);
 
   planets.sun = new THREE.Sprite(
     new THREE.SpriteMaterial({
@@ -199,32 +236,14 @@ function setupSky() {
       color: 0xffffff, sizeAttenuation: false}));
   planets.mercury.scale.set(0.025, 0.025, 1);
 
-  markers.antisun = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: planetTexture,
-      color: 0x00ff00, sizeAttenuation: false}));
-  markers.antisun.scale.set(0.04, 0.04, 1);
-  markers.defmars = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: planetTexture,
-      color: 0x00ff00, sizeAttenuation: false}));
-  markers.defmars.scale.set(0.04, 0.04, 1);
-  markers.antisun.visible = false;
-  markers.defmars.visible = false;
-
   labels.sun = makeLabel("sun", {}, 50, 40);
   labels.venus = makeLabel("venus", {}, 50, 25);
   labels.mars = makeLabel("mars", {}, 50, 25);
   labels.antisun = makeLabel("anti-sun", {}, 50);
   labels.sunmars = makeLabel("sun-mars", {}, 50);
-  if (pointingNow == "sun") {
-    labels.antisun.visible = false;
-    labels.sunmars.visible = false;
-    labels.mars.visible = false;
-  } else {
-    labels.venus.visible = false;
-  }
 
+  rotateCameraTo(90);
+  cameraPointing("venus");
   setPlanetPositions();
   scene.add(planets.sun);
   scene.add(planets.venus);
@@ -233,7 +252,6 @@ function setupSky() {
   scene.add(planets.saturn);
   scene.add(planets.mercury);
 
-  // planets.venus.visible = false;
   scene.add(labels.sun);
   scene.add(labels.venus);
   scene.add(labels.mars);
@@ -255,7 +273,7 @@ function makeLabel(text, params, tick=0, gap=-10) {
   // weight = normal | bold | bolder | lighter | 100-900 (400 normal, 700 bold)
   // size = in px or em, optional /lineheight in px or em
   // family = optional
-  let font = getProp(params, "font", "18px Arial, sans-serif");
+  let font = getProp(params, "font", "20px Arial, sans-serif");
   ctx.font = font;
   // console.log(ctx.font);
   let {actualBoundingBoxLeft, actualBoundingBoxRight, actualBoundingBoxAscent,
@@ -268,10 +286,11 @@ function makeLabel(text, params, tick=0, gap=-10) {
   ctx.font = font;  // gets reset when canvas size changes
   // rgba(r, g, b, a)  either 0-255 or 0.0 to 1.0, a=0 transparent
   // or just a color
-  ctx.fillStyle = getProp(params, "color", "#ffffff7f");
+  ctx.fillStyle = getProp(params, "color", "#ffffff9f");
   ctx.fillText(text, actualBoundingBoxLeft+1,
                2*tick+gap+actualBoundingBoxAscent+1);
   if (tick) {
+    ctx.lineWidth = 2;
     ctx.strokeStyle = ctx.fillStyle;
     ctx.beginPath();
     ctx.moveTo(0.5*textWidth, 0.);
@@ -300,10 +319,11 @@ function makeLabel(text, params, tick=0, gap=-10) {
 window.addEventListener("resize", () => {
   const elem = renderer.domElement;
   const [width, height] = [window.innerWidth, window.innerHeight];
+  setFOVParams(width, height);
   elem.width = width;
   elem.height = height;
   camera.aspect = width / height;
-  camera.fov = HFOV / camera.aspect;
+  camera.fov = VFOV;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
   renderer.render(scene, camera);
