@@ -112,6 +112,7 @@ function togglePause() {
   } else {
     controls.enabled = trackingMode == "sky";
     camera.up.set(0, 1, 0);
+    camera.lookAt(1, 0, 0);
     animate();
   }
 }
@@ -574,9 +575,6 @@ class SkyControls extends THREE.EventDispatcher {
       q.sub(tmp.copy(u).multiplyScalar(u.dot(q)));
       qtmp.setFromUnitVectors(p.normalize(), q.normalize());  // p->q, u->u
       quat.premultiply(qtmp);
-      if (!dragStrategy) {
-        
-      }
       // camera.quaternion is worldToLocal transform
       camera.quaternion.multiply(quat.conjugate());
       p.copy(q0);  // Subsequent move needs to begin from original q.
