@@ -299,17 +299,19 @@ function makeLabel(text, params, tick=0, gap=-0.5) {
   let [textWidth, textHeight] = [
     actualBoundingBoxLeft + actualBoundingBoxRight + 2,
     actualBoundingBoxAscent + actualBoundingBoxDescent + 2];
+  if (!text) [textWidth, textHeight] = [0, 0];
   // Make tick and gap sizes scale with fontSize
   tick = tick * fontSize;
   gap = gap * fontSize;
-  canvas.width = textWidth;
-  canvas.height = 2*tick + gap + textHeight;
+  const thinText = textWidth < 1 - ((gap<0)? -2*gap : 0);
+  canvas.width = thinText? ((gap<0)? 1-2*gap : 2) : textWidth;
+  canvas.height = 2*tick + ((gap<0)? 0 : gap) + textHeight;
   ctx.font = font;
   // rgba(r, g, b, a)  either 0-255 or 0.0 to 1.0, a=0 transparent
   // or just a color
   ctx.fillStyle = getProp(params, "color", "#ffffff9f");
   ctx.fillText(text, actualBoundingBoxLeft+1,
-               2*tick+gap+actualBoundingBoxAscent+1);
+               canvas.height-textHeight+actualBoundingBoxAscent+1);
   if (tick) {
     ctx.lineWidth = 2;
     ctx.strokeStyle = ctx.fillStyle;
@@ -317,9 +319,10 @@ function makeLabel(text, params, tick=0, gap=-0.5) {
     ctx.moveTo(0.5*textWidth, 0.);
     ctx.lineTo(0.5*textWidth, tick);
     if (gap < 0) {
-      ctx.moveTo(0.5*textWidth+gap, tick-5);  // why -5??
-      ctx.lineTo(0.5*textWidth-gap, tick-5);
+      ctx.moveTo(0.5*textWidth+gap, tick);
+      ctx.lineTo(0.5*textWidth-gap, tick);
       ctx.moveTo(0.5*textWidth, tick);
+      gap = 0;  // for bottom tick and sprite.center below
     } else {
       ctx.moveTo(0.5*textWidth, tick + gap);
     }
@@ -458,9 +461,8 @@ class SkyControls extends THREE.EventDispatcher {
      * vector, sp = +-sqrt(1-cp**2).  Transforming back to original coordinates,
      *   c = (x/r)*cp - (y/r)*sp
      *   s = (y/r)*cp + (x/r)*sp
-     * In the applications here, we always want the smallest positive s root.
-     * However, in one case, the sign of w is indeterminate, which is indicated
-     * by the optional argument.
+     * In the applications here, we always want the smallest positive s root,
+     * and the sign of w is indeterminate. (sometimes??)
      */
     function dotSolve(x, y, w, eitherSign=false) {
       const rr = 1 / Math.sqrt(x**2 + y**2);
@@ -474,6 +476,8 @@ class SkyControls extends THREE.EventDispatcher {
         [cx, cy] = [Math.abs(cx), Math.abs(cy)];
         [sx, sy] = [Math.abs(sx), Math.abs(sy)];
         return [cx+cy, Math.abs(sx-sy)];
+
+      // Other cases do not work properly??  Sometimes give s<0.
       } else if (sx < 0) {
         return (sy > 0)? [cx+cy, sx+sy] : [cx-cy, sx-sy];
       } else if (sy < 0) {
@@ -496,15 +500,7 @@ class SkyControls extends THREE.EventDispatcher {
       p.set(x, y, z);
       self.dispatchEvent(_startEvent);
 
-      // self.camera.localToWorld(tmp.copy(p));
-      // pp.copy(planets.sun.position).normalize();
-      // u0.copy(planets.venus.position).normalize();
-      // console.log(p, tmp, pp, u0);
-      // self.camera.getWorldDirection(q0);
-      // u0.set(0, 0, -1);
-      // u0.applyQuaternion(self.camera.quaternion);
-      // console.log(q0);
-      u.set(0, 1, 0);  // north pole
+      u.set(0, 1, 0);  // north eclipptic pole
       self.camera.worldToLocal(u);
       dragStrategy = u.y > ((u.z < 0)? p.y : -p.y);
     }
@@ -522,7 +518,7 @@ class SkyControls extends THREE.EventDispatcher {
       u.x = 0;
       u.normalize();
       u0.copy(u);
-      if (dragStrategy) {
+      if (dragStrategy) {  // Star under pointer on down stays under pointer.
         let udotp = u.dot(p);
         /* Since u.x=0, u.dot(q) just involves (q.y, q.z), so the problem
          * is to find (u.y, u.z) on the unit circle such that this new u
@@ -579,7 +575,7 @@ class SkyControls extends THREE.EventDispatcher {
           q.sub(tmp);  // because udotq = udotp by construction
         }
       }
-      if (!dragStrategy) {
+      if (!dragStrategy) {  // Drag pointer direction around NEP or SEP.
         // Just project p and q into plane normal to u
         p.sub(tmp.copy(u).multiplyScalar(u.dot(p)));
         q.sub(tmp.copy(u).multiplyScalar(u.dot(q)));
