@@ -567,21 +567,16 @@ class SkyControls extends THREE.EventDispatcher {
         /* Set quaternion to the first rotation (about x axis). */
         quat.setFromUnitVectors(u0, u);  // so u = u0.applyQuaternion(quat))
         p.applyQuaternion(quat);
-        if (dragStrategy) {
-          // Find the rotation around u that takes p to q.
-          // The easiest way to generate this is to project p and q into the
-          // plane normal to u, normalize them, and use setFromUnitVectors.
-          p.sub(tmp.copy(u).multiplyScalar(udotp));
-          q.sub(tmp);  // because udotq = udotp by construction
-        }
+      } else {  // Rotate around NEP or SEP using only directions of p, q.
+        quat.setFromUnitVectors(u, u);
       }
-      if (!dragStrategy) {  // Drag pointer direction around NEP or SEP.
-        // Just project p and q into plane normal to u
-        p.sub(tmp.copy(u).multiplyScalar(u.dot(p)));
-        q.sub(tmp.copy(u).multiplyScalar(u.dot(q)));
-      }
+      p.sub(tmp.copy(u).multiplyScalar(u.dot(p)));
+      q.sub(tmp.copy(u).multiplyScalar(u.dot(q)));
       qtmp.setFromUnitVectors(p.normalize(), q.normalize());  // p->q, u->u
       quat.premultiply(qtmp);
+      if (!dragStrategy) {
+        
+      }
       // camera.quaternion is worldToLocal transform
       camera.quaternion.multiply(quat.conjugate());
       p.copy(q0);  // Subsequent move needs to begin from original q.
