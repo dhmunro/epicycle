@@ -45,7 +45,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 const [sun0, sunt, mars0, marst] = [
   280.46457166 * Math.PI/180., 35999.37244981/36525. * Math.PI/180.,
   -4.55343205 * Math.PI/180., 19140.30268499/36525. * Math.PI/180.];
-const jd2ra = { sun: (jd) => sun0+sunt*jd, mars: (jd) => mars0+marst*jd };
+const ra2xyz = (ra) => [Math.sin(ra), 0, Math.cos(ra)];
+const jd2xyz = { sun: (jd) => ra2xyz(sun0+sunt*jd),
+                 mars: (jd) => ra2xyz(mars0+marst*jd) };
 // J2000 obliquity of ecliptic 23.43928 degrees
 
 let jdInitial = dayOfDate(new Date());
@@ -56,11 +58,12 @@ const planets = {};
 const labels = {};
 
 let paused = false;
+let dialogOpen = false;
 let animationFrameId = undefined;
 
 const labelsForModes = {
   sky: ["sun", "mercury", "venus", "mars", "jupiter", "saturn", "antisun"],
-  sun: ["sun"],
+  sun: ["sun", "meansun"],
   venus: ["sun", "venus"],
   mars: ["sun", "mars",  "antisun", "sunmars"]
 };
@@ -73,55 +76,167 @@ function cameraTracking(tracking) {
   const skyMode = trackingMode == "sky";
   scene.backgroundIntensity = skyMode? 1.0 : 0.5;
   controls.enabled = skyMode;
+  render();
 }
 
 function animate() {
   animationFrameId = undefined;
   jdNow += 0.6;  // about 10 sec/yr
+  render();
+  if (!paused) animationFrameId = requestAnimationFrame(animate);
+}
+
+function render() {
   setPlanetPositions();
   let rsun = planets.sun.position;
   let z = rsun.z, x = rsun.x;  // rsun=(z,x) and rperp=(-x,z)
   if (trackingMode == "mars") {
     let rmars = planets.mars.position;
     [x, z] = [rmars.x-rsun.x, rmars.z-rsun.z];
+  } else if (trackingMode == "sun") {
+    let rmean = labels.meansun.position;
+    [x, z] = [rmean.x, rmean.z];
   }
   if (trackingMode != "sky") {
     camera.lookAt(x, 0, z);
   }
   renderer.render(scene, camera);
   overlayDate();
-  if (!paused) animationFrameId = requestAnimationFrame(animate);
+}
+
+function addListenerTo(elem, eventType, callback) {
+  elem.addEventListener(eventType, callback);
+}
+
+function connectRadioButton(id, callback) {
+  const elem = document.getElementById(id);
+  elem.addEventListener("change", callback);
+}
+
+function date4jd(jd) {
+  let date = dateOfDay(jd);
+  return (date.getFullYear() + "-" +
+          ('0' + (1+date.getMonth())).slice(-2) + "-" +
+          ('0' + date.getDate()).slice(-2));
+}
+
+function jd4date(text) {
+  let parts = text.split("-");
+  const minus = parts[0] == "";
+  if (minus) parts = parts.slice(1);
+  parts = parts.map((v) => parseInt(v));
+  if (minus) parts[0] = -parts[0];
+  const date = new Date();
+  date.setFullYear(parts[0]);
+  date.setMonth((parts.length>1)? parts[1]-1 : 0);
+  date.setDate((parts.length>2)? parts[2] : 1);
+  return dayOfDate(date);
+}
+
+function setStartDate(event) {
+  const text = event.target.value;
+  const match = event.target.value.match(/(-?[012]\d\d\d)(-\d\d)?(-\d\d)?/);
+  const jd = match? jd4date(event.target.value) : jdInitial;
+  jdNow = jdInitial = jd;
+  DATE_BOX.value = date4jd(jdInitial);
+  gotoStartDate();
+}
+
+function gotoStartDate() {
+  jdNow = jdInitial;
+  setPlanetPositions();
+  renderer.render(scene, camera);
+  overlayDate();
 }
 
 const DATE_ELEM = document.getElementById("date");
+const PAUSE_ELEM = document.getElementById("pause");
+const PLAY_ELEM = document.getElementById("play");
+const DIALOG_ELEM = document.getElementById("dialog");
+const CHEVRON_ELEM = document.getElementById("chevron-right");
+const XMARK_ELEM = document.getElementById("xmark");
+
+const LEFT_DIALOG = document.getElementById("left-dialog");
+const DIALOG_HIDER = `translate(-${LEFT_DIALOG.clientWidth}px)`;
+DIALOG_ELEM.style.transform = DIALOG_HIDER;
+
+connectRadioButton("sky", () => cameraTracking("sky"));
+connectRadioButton("sun", () => cameraTracking("sun"));
+connectRadioButton("venus", () => cameraTracking("venus"));
+connectRadioButton("mars", () => cameraTracking("mars"));
+
+const DATE_BOX = document.getElementById("date-box");
+addListenerTo(DATE_BOX, "change", setStartDate);
+const RESTART_BUTTON = document.getElementById("restart");
+addListenerTo(RESTART_BUTTON, "click", gotoStartDate);
 
 function overlayDate() {
-  let dateNow = dateOfDay(jdNow);
-  DATE_ELEM.innerHTML =(dateNow.getFullYear() + " / " +
-                        ('0' + (1+dateNow.getMonth())).slice(-2) + " / " +
-                        ('0' + dateNow.getDate()).slice(-2));
+  DATE_ELEM.innerHTML = date4jd(jdNow);
 }
+
+const _dummyVector = new THREE.Vector3();
 
 function togglePause() {
   paused = !paused;
   if (paused) {
+    ppToggler(PLAY_ELEM, PAUSE_ELEM);
     controls.enabled = true;
     let id = animationFrameId;
     animationFrameId = undefined;
     if (id !== undefined) cancelAnimationFrame(id);
+    if (!dialogOpen) CHEVRON_ELEM.classList.remove("hidden");
   } else {
+    ppToggler(PAUSE_ELEM, PLAY_ELEM);
     controls.enabled = trackingMode == "sky";
     camera.up.set(0, 1, 0);
-    camera.lookAt(1, 0, 0);
+    let dir = camera.getWorldDirection(_dummyVector);
+    if (dir.x != 0 || dir.z != 0) {
+      dir.y = 0;
+      dir.normalize();
+    } else {
+      dir.set(1, 0, 0);
+    }
+    camera.lookAt(dir.x, 0, dir.z);
     animate();
+    if (!dialogOpen && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
   }
 }
 
-DATE_ELEM.addEventListener("click", togglePause);
+function ppToggler(elemOn, elemOff, toggler) {
+  elemOff.removeEventListener("click", togglePause);
+  elemOff.classList.add("hidden");
+  elemOn.classList.remove("hidden");
+  elemOn.addEventListener("click", togglePause);
+}
+
+addListenerTo(PAUSE_ELEM, "click", togglePause);
+
+function toggleDialog() {
+  dialogOpen = !dialogOpen;
+  if (dialogOpen) {
+    diaToggler(XMARK_ELEM, CHEVRON_ELEM);
+    DIALOG_ELEM.style.transform = "translate(0)";
+    DATE_BOX.value = date4jd(jdInitial);
+  } else {
+    diaToggler(CHEVRON_ELEM, XMARK_ELEM);
+    DIALOG_ELEM.style.transform = DIALOG_HIDER;
+    if (trackingMode != "sky" && !paused) CHEVRON_ELEM.classList.add("hidden");
+  }
+}
+
+function diaToggler(elemOn, elemOff) {
+  elemOff.removeEventListener("click", toggleDialog);
+  elemOff.classList.add("hidden");
+  elemOn.classList.remove("hidden");
+  elemOn.addEventListener("click", toggleDialog);
+}
+
+addListenerTo(CHEVRON_ELEM, "click", toggleDialog);
 
 function setPlanetPositions() {
+  let x, y, z;
   for (let p of ["sun", "venus", "mars", "jupiter", "saturn", "mercury"]) {
-    let [x, y, z] = ssModel1.xyzRel(p, jdNow);
+    [x, y, z] = ssModel1.xyzRel(p, jdNow);
     // xecl -> zgl, yecl -> xgl, zecl -> ygl
     planets[p].position.set(y, z, x);
     labels[p].position.set(y, z, x);
@@ -130,6 +245,8 @@ function setPlanetPositions() {
   const mars = planets.mars.position;
   labels.antisun.position.set(-sun.x, -sun.y, -sun.z);
   labels.sunmars.position.set(mars.x-sun.x, mars.y-sun.y, mars.z-sun.z);
+  [x, y, z] = jd2xyz.sun(jdNow);
+  labels.meansun.position.set(x, 0, z);
 }
 
 function getFloat32Geom(nVerts, itemSize, pointGen) {
@@ -226,33 +343,34 @@ function setupSky() {
     new THREE.SpriteMaterial({
       map: planetTexture,
       color: 0xffffff, sizeAttenuation: false}));
-  planets.venus.scale.set(0.04, 0.04, 1);
+  planets.venus.scale.set(0.03, 0.03, 1);
   planets.mars = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: planetTexture,
       color: 0xffcccc, sizeAttenuation: false}));
-  planets.mars.scale.set(0.04, 0.04, 1);
+  planets.mars.scale.set(0.03, 0.03, 1);
 
   planets.jupiter = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: planetTexture,
       color: 0xffffff, sizeAttenuation: false}));
-  planets.jupiter.scale.set(0.04, 0.04, 1);
+  planets.jupiter.scale.set(0.03, 0.03, 1);
   planets.saturn = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: planetTexture,
       color: 0xffffcc, sizeAttenuation: false}));
-  planets.saturn.scale.set(0.04, 0.04, 1);
+  planets.saturn.scale.set(0.03, 0.03, 1);
   planets.mercury = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: planetTexture,
       color: 0xffffff, sizeAttenuation: false}));
-  planets.mercury.scale.set(0.025, 0.025, 1);
+  planets.mercury.scale.set(0.02, 0.02, 1);
 
   labels.sun = makeLabel("sun", {}, 2, 1.8);
   labels.venus = makeLabel("venus", {}, 2, 1.25);
   labels.mars = makeLabel("mars", {}, 2, 1.25);
   labels.antisun = makeLabel("anti-sun", {}, 2);
+  labels.meansun = makeLabel("mean-sun", {}, 4, 0);
   labels.sunmars = makeLabel("sun-mars", {}, 2);
   labels.mercury = makeLabel("mercury", {}, 2, 1.25);
   labels.jupiter = makeLabel("jupiter", {}, 2, 1.25);
@@ -272,6 +390,7 @@ function setupSky() {
   scene.add(labels.venus);
   scene.add(labels.mars);
   scene.add(labels.antisun);
+  scene.add(labels.meansun);
   scene.add(labels.sunmars);
   scene.add(labels.mercury);
   scene.add(labels.jupiter);

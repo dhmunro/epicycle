@@ -10,6 +10,46 @@
           margin: 0;
           overflow: hidden;
       }
+      .date-buttons {
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          user-select: none;
+      }
+      #date {
+          display: inline;
+          font: 2em Arial, sans-serif;
+          color: white;
+      }
+      .button {
+          display: inline-block;
+          vertical-align: text-bottom;
+          margin: 0 20px;
+          fill: white;
+          cursor: pointer;
+      }
+      .tab {
+          display: inline-block;
+          vertical-align: top;
+          padding: 2px 8px 2px 4px;
+          margin: 6px 0px;
+          border-radius: 0px 16px 16px 0px;
+          background: #ffffff80;
+          fill: black;
+          cursor: pointer;
+      }
+      .hidden {
+          display: none !important;
+      }
+      .left-dialog {
+          display: inline-block;
+          background: #ffffff80;
+          margin: 6px 0px 6px -20px;
+          padding: 10px;
+          transform: translate(0px);
+          font: 1.5em Arial, sans-serif;
+          color: black;
+      }
     </style>
     <script
       async
@@ -26,20 +66,51 @@
   </head>
   <body>
     <canvas id="container"></canvas>
-    <div id="date" style="position: absolute; top: 20px; left: 20px; font: 2em Arial, sans-serif; color: white; cursor: pointer; user-select: none;">
-    </div>
-    <div style="display: none;">
-      <!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
-      <!-- play button, unicode f04b -->
-      <svg xmlns="http://www.w3.org/2000/svg"
-           height="2em" viewBox="0 0 384 512">
-        <path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/>
-      </svg>
-      <!-- pause button, unicode f04c -->
-      <svg xmlns="http://www.w3.org/2000/svg"
+    <div class="date-buttons">
+      <div id="date"></div>
+      <svg id="pause" class="button" xmlns="http://www.w3.org/2000/svg"
            height="2em" viewBox="0 0 320 512">
         <path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z"/>
       </svg>
+      <svg id="play" class="button hidden" xmlns="http://www.w3.org/2000/svg"
+           height="2em" viewBox="0 0 384 512">
+        <path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/>
+      </svg>
+      <br/>
+      <div id="dialog" style="transform: translate(-200%);">
+      <div id="left-dialog" class="left-dialog">
+        <p style="text-align: center;">Drag sky to look around!</p>
+        <input type="radio" id="sky" name="pointing" value="sky"
+               autocomplete="off" checked/>
+        <label for="sky">How the Sun and Planets Move</label><br/>
+        <input type="radio" id="sun" name="pointing" value="sun"
+               autocomplete="off"/>
+        <label for="sun">Sun's Motion Not Quite Uniform</label><br/>
+        <input type="radio" id="venus" name="pointing" value="venus"
+               autocomplete="off"/>
+        <label for="venus">How Venus Moves</label><br/>
+        <input type="radio" id="mars" name="pointing" value="mars"
+               autocomplete="off"/>
+        <label for="mars">How Mars Moves</label><br/>
+        <p>Start:
+          <input type="text" id="date-box" name="date"
+                 value="2000-01-01" maxLength="11" size="11"/>
+          <button id="restart">Go To Start</button></p>
+      </div><svg id="chevron-right" class="tab"
+                 xmlns="http://www.w3.org/2000/svg"
+                 height="2em" viewBox="0 0 320 512">
+        <path d="M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"/>
+      </svg><svg id="xmark" class="tab hidden"
+                 xmlns="http://www.w3.org/2000/svg"
+                 height="2em" viewBox="0 0 384 512">
+        <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/>
+      </svg>
+      </div>
+    </div>
+    <!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+    <div style="display: none;">
+      <!-- play button, unicode f04b -->
+      <!-- pause button, unicode f04c -->
       <!-- arrow-rotate-left, unicode f0e2 -->
       <svg xmlns="http://www.w3.org/2000/svg"
            height="2em" viewBox="0 0 512 512">
@@ -51,10 +122,6 @@
         <path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/>
       </svg>
       <!-- xmark, unicode f00d  (close) -->
-      <svg xmlns="http://www.w3.org/2000/svg"
-           height="2em" viewBox="0 0 384 512">
-        <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/>
-      </svg>
     </div>
     <script src="./ephemeris.js"></script>
     <script type="module" src="./main.js"></script>
