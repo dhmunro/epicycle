@@ -74,8 +74,8 @@ function cameraTracking(tracking) {
   trackingMode = tracking;
   jdNow = jdInitial;
   const skyMode = trackingMode == "sky";
-  scene.backgroundIntensity = skyMode? 1.0 : 0.5;
-  controls.enabled = skyMode;
+  scene.backgroundIntensity = skyMode? 0.6 : 0.3;
+  controls.enabled = skyMode || paused;
   render();
 }
 
@@ -144,9 +144,7 @@ function setStartDate(event) {
 
 function gotoStartDate() {
   jdNow = jdInitial;
-  setPlanetPositions();
-  renderer.render(scene, camera);
-  overlayDate();
+  render();
 }
 
 const DATE_ELEM = document.getElementById("date");
@@ -169,6 +167,44 @@ const DATE_BOX = document.getElementById("date-box");
 addListenerTo(DATE_BOX, "change", setStartDate);
 const RESTART_BUTTON = document.getElementById("restart");
 addListenerTo(RESTART_BUTTON, "click", gotoStartDate);
+const FULLSCREEN_ICON = document.querySelector("#fullscreen > use");
+document.getElementById("fullscreen").addEventListener("click",
+                                                       toggleFullscreen);
+
+function amFullscreen() {
+  return (document.fullScreenElement && document.fullScreenElement !== null) ||
+    (document.mozFullScreen || document.webkitIsFullScreen);
+}
+
+function goFullscreen() {
+  if (amFullscreen()) return;
+  const el = document.documentElement;
+  const rfs = el.requestFullScreen || el.webkitRequestFullScreen ||
+        el.mozRequestFullScreen || el.msRequestFullscreen;
+  rfs.call(el);
+}
+
+function stopFullscreen() {
+  if (!amFullscreen()) return;
+  const el = document;
+  const cfs = el.cancelFullScreen || el.webkitCancelFullScreen ||
+        el.mozCancelFullScreen || el.exitFullscreen || el.webkitExitFullscreen;
+  cfs.call(el);
+}
+
+if (amFullscreen()) {
+  FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-compress");
+}
+
+function toggleFullscreen() {
+  if (amFullscreen()) {
+    stopFullscreen();
+    FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-expand");
+  } else {
+    goFullscreen();
+    FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-compress");
+  }
+}
 
 function overlayDate() {
   DATE_ELEM.innerHTML = date4jd(jdNow);
@@ -290,8 +326,7 @@ function setupSky() {
   scene.background = new THREE.CubeTextureLoader()
     .setPath("images/")
     .load(textureMaps);
-  scene.backgroundIntensity = 0.5;  // 0.3-0.4 fades to less distracting level
-  // scene.backgroundBlurriness = 0.04
+  scene.backgroundIntensity = 0.6;  // 0.3-0.4 fades to less distracting level
 
   // It would be more efficient to draw ecliptic, equator, and pole marks
   // directly onto the sky map.
