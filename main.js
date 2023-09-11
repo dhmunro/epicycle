@@ -1,6 +1,31 @@
 import * as THREE from 'three';
 import WebGL from 'three/addons/capabilities/WebGL.js';
-// import { FlyControls } from 'three/addons/controls/FlyControls.js';
+
+/* Ideas:
+
+   1. Ruler tool: Double click to set one end, switch to ruler mode,
+      leaving mark at position of double click and creating second mark
+      that can be dragged around, showing HUD with delta (lon, lat) and
+      angular distance to first mark.
+
+   2. Overlay showing model with orthographic camera.  This should show
+      both orbits, with grid that rotates when animation is on.  In Venus
+      mode, can show either Sun orbit or Earth orbit, with animation
+      flipping the two.  Inactive orbit dims but still visible (so three
+      orbits shown).  In Mars mode, the epicycle-heliocentric mode
+      animation swaps the orbit centers in addition to flipping the
+      orbits; the radius parallelogram is shown.  Possibly add third
+      tychonic switch.
+
+   3. Survey Earth orbit - animation goes until Mars opposition, then
+      puts mark on sky and orbit, producing a new mark each Mars year,
+      along with the Earth-Mars and Earth-Sun sight lines.
+
+   4. Survey Mars orbit - sky scene fades out, animation is in diagram
+      showing sight lines moving with pause at each earth year marking
+      new point on Mars orbit.
+
+ */
 
 // console.log(THREE.REVISION);  --> 155
 
@@ -20,9 +45,14 @@ setFOVParams(window.innerWidth, window.innerHeight);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(VFOV, ASPECT, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer(
-  {canvas: document.getElementById("container"), antialias: true});
+  {canvas: document.getElementById("container"), antialias: true, alpha: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 // document.body.appendChild(renderer.domElement);
+
+renderer.autoClear = false;  // Allow modelScene to overlay scene.
+const modelScene = new THREE.Scene();
+const modelCamera = new THREE.OrthographicCamera(
+  -3*ASPECT, 3*ASPECT, 3, -3, 0.01, 1000);
 
 /*
  *  mercury      venus      earth       mars     jupiter    saturn
@@ -59,6 +89,7 @@ const labels = {};
 
 let paused = false;
 let dialogOpen = false;
+let modelShowing = false;
 let animationFrameId = undefined;
 
 const labelsForModes = {
@@ -100,7 +131,12 @@ function render() {
   if (trackingMode != "sky") {
     camera.lookAt(x, 0, z);
   }
+  renderer.clear();
   renderer.render(scene, camera);
+  if (modelShowing) {
+    renderer.clearDepth();
+    renderer.render(modelScene, modelCamera);
+  }
   overlayDate();
 }
 
@@ -330,32 +366,20 @@ function setupSky() {
 
   // It would be more efficient to draw ecliptic, equator, and pole marks
   // directly onto the sky map.
-  let geom = getFloat32Geom(
-    200, 3, function*(nVerts) {
-      let dtheta = 2*Math.PI / nVerts;
-      for (let i=0 ; i<nVerts ; i++) {
-        let theta = i*dtheta;
-        // theta is RA, celestial +x -> +z, celestial +y -> +x
-        yield [100*Math.sin(theta), 0., 100*Math.cos(theta)];
-      }
-    });
   const solidLine = new THREE.LineBasicMaterial({color: 0x446644});
-  const ecliptic = new THREE.LineLoop(geom, solidLine);
+  let geom = new THREE.BufferGeometry().setFromPoints(
+    new THREE.EllipseCurve(0, 0, 100, 100).getPoints());
+  const ecliptic = new THREE.Line(geom, solidLine);
+  ecliptic.rotation.x = Math.PI / 2;
   scene.add(ecliptic);
-  geom = getFloat32Geom(
-    200, 3, function*(nVerts) {
-      let dtheta = 2*Math.PI / nVerts;
-      let eps = 23.43928 * Math.PI/180.;
-      let [ce, se] = [Math.cos(eps), Math.sin(eps)];
-      for (let i=0 ; i<nVerts ; i++) {
-        let theta = i*dtheta;
-        // theta is RA, celestial +x -> +z, celestial +y -> +x
-        let [x, y] = [100*Math.cos(theta), 100*Math.sin(theta)];
-        yield [y*ce, -y*se, x];
-      }
-    });
-  const equator = new THREE.LineLoop(geom, solidLine);
-  // equator.computeLineDistances();  Cannot make dashed lines work??!!
+  geom = new THREE.BufferGeometry().setFromPoints(
+    new THREE.EllipseCurve(0, 0, 100, 100).getPoints());
+  const dashedLine = new THREE.LineDashedMaterial(
+    {color: 0x446644, dashSize: 0.5, gapSize: 0.75});
+  const equator = new THREE.Line(geom, dashedLine);
+  equator.computeLineDistances();
+  equator.rotation.x = Math.PI / 2;
+  equator.rotation.y = -23.43928 * Math.PI/180.;
   scene.add(equator);
   const poleMarks = new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints(
@@ -522,8 +546,32 @@ window.addEventListener("resize", () => {
   camera.fov = VFOV;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
-  renderer.render(scene, camera);
+  render();
 }, false);
+
+/* ------------------------------------------------------------------------ */
+
+function setupModel() {
+  modelScene.add(modelCamera);
+  modelCamera.position.z = 5;
+
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(50, 50),
+    new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide,
+                                 transparent: true, opacity: 0.5}));
+  plane.position.z = -100;
+  modelScene.add(plane);
+
+  const poleMarks = new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints(
+      [new THREE.Vector3(-1, 0, 1), new THREE.Vector3(1, 0, 1),
+       new THREE.Vector3(0, -1, 1), new THREE.Vector3(0, 1, 1)]),
+    new THREE.LineDashedMaterial(
+      {color: 0x000000, lineWidth: 2, dashSize: .3, gapSize: .1}));
+  poleMarks.computeLineDistances();
+  modelScene.add(poleMarks);
+
+}
 
 /* ------------------------------------------------------------------------ */
 // SkyControls allows you to drag the sky more intuitively than any of
@@ -758,7 +806,7 @@ class SkyControls extends THREE.EventDispatcher {
 
 const controls = new SkyControls(camera, renderer.domElement);
 controls.addEventListener("change", () => {
-  renderer.render(scene, camera);
+  render();
 });
 controls.enabled = trackingMode == "sky";
 
@@ -766,6 +814,7 @@ controls.enabled = trackingMode == "sky";
 
 if ( WebGL.isWebGLAvailable() ) {
   setupSky();
+  setupModel();
 } else {
   const warning = WebGL.getWebGLErrorMessage();
   document.getElementById( 'container' ).appendChild( warning );
