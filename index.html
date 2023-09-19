@@ -48,6 +48,10 @@
       .hidden {
           display: none !important;
       }
+      .disabled {
+          color: #666666;
+          font-style: oblique;
+      }
       .left-dialog {
           display: inline-block;
           background: #ffffff80;
@@ -91,27 +95,34 @@
           <use xlink:href="#fa-expand"/></svg>
         <p style="text-align: center; margin-top: 0;">
           Drag sky to look around!</p>
-        <input type="radio" id="sky" name="pointing" value="sky"
-               autocomplete="off" checked/>
-        <label for="sky">How the Sun and Planets Move</label><br/>
-        <input type="radio" id="sun" name="pointing" value="sun"
-               autocomplete="off"/>
-        <label for="sun">Sun's Motion Not Quite Uniform</label><br/>
-        <input type="radio" id="venus" name="pointing" value="venus"
-               autocomplete="off"/>
-        <label for="venus">How Venus Moves</label><br/>
-        <input type="radio" id="mars" name="pointing" value="mars"
-               autocomplete="off"/>
-        <label for="mars">How Mars Moves</label><br/>
+        <label><input type="radio" id="sky" name="pointing" value="sky"
+                      autocomplete="off" checked/>
+          How the Sun and Planets Move</label><br/>
+        
+        <label><input type="radio" id="sun" name="pointing" value="sun"
+                      autocomplete="off"/>
+          Sun's Motion Not Quite Uniform</label><br/>
+        <label><input type="radio" id="venus" name="pointing" value="venus"
+                      autocomplete="off"/>
+          How Venus Moves</label><br/>
+        
+        <label><input type="radio" id="mars" name="pointing" value="mars"
+                      autocomplete="off"/>
+          How Mars Moves</label><br/>
         <p>Start:
           <input type="text" id="date-box" name="date"
                  value="2000-01-01" maxLength="11" size="11"/>
           <button id="restart">Go To Start</button>
         </p>
-        <input type="checkbox" id="showorb" value="show" autocomplete="off"/>
-        <label for="show">Show Orbits</label>&nbsp;&nbsp;
-        <input type="checkbox" id="asepi" value="asepi" autocomplete="off"/>
-        <label for="show">...as epicycles</label><br/>
+        <label><input type="checkbox" id="showorb" value="show"
+                      autocomplete="off"/>
+          Show Orbits</label>&nbsp;&nbsp;
+        <label class="disabled"><input type="checkbox" id="asepi" value="asepi"
+                      autocomplete="off" disabled=true/>
+          ...as epicycles</label><br/>
+        <label class="disabled"><input type="checkbox" id="polar" value="polar"
+                      autocomplete="off" disabled=true/>
+          View from Deep Space</label>
       </div><svg id="chevron-right" class="tab"
                  xmlns="http://www.w3.org/2000/svg"
                  height="2em" viewBox="0 0 320 512">

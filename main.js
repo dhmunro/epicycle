@@ -84,20 +84,20 @@ const jd2xyz = { sun: (jd) => ra2xyz(sun0+sunt*jd),
 
 let jdInitial = dayOfDate(new Date());
 let jdNow = null;  // signals reset to jdInitial
+let daysPerSecond = 40;
 let trackingMode = "sky";
 
 const planets = {};
 const labels = {};
 
-let paused = false;
 let dialogOpen = false;
 let animationFrameId = undefined;
 
 const labelsForModes = {
   sky: ["sun", "mercury", "venus", "mars", "jupiter", "saturn", "antisun"],
   sun: ["sun", "meansun"],
-  venus: ["sun", "venus"],
-  mars: ["sun", "mars",  "antisun", "sunmars"]
+  venus: ["sun", "venus", "earth"],
+  mars: ["sun", "mars",  "antisun", "sunmars", "earth"]
 };
 
 function cameraTracking(tracking) {
@@ -107,7 +107,7 @@ function cameraTracking(tracking) {
   pointCameraForMode();
   const skyMode = trackingMode == "sky";
   scene.backgroundIntensity = skyMode? 0.6 : 0.3;
-  controls.enabled = skyMode || paused;
+  controls.enabled = skyMode || skyAnimator.isPaused;
   for (let name of ["sun", "venus", "earth", "mars"]) {
     ellipseShapes[name].visible = false;
   }
@@ -122,30 +122,15 @@ function cameraTracking(tracking) {
       ellipseShapes.venus.visible = true;
     } else if (trackingMode == "mars") {
       ellipseShapes.mars.visible = true;
+      if (polarAnimator.isPolar) labels.antisun.visible = false;
     }
   }
   render();
 }
 
-function animate(ms) {  // argument is millisecond clock when a callback
-  animationFrameId = undefined;
-  if (jdNow === null) {
-    jdNow = jdInitial;
-  } else {
-    if (ms === undefined) ms = msPrev;
-    const dt = (msPrev===null)? 0 : ms - msPrev;
-    jdNow += 0.001 * dt * daysPerSecond;
-  }
-  if (ms !== undefined) msPrev = ms;
-  render();
-  if (!paused) animationFrameId = requestAnimationFrame(animate);
-}
-let msPrev = null;  // signals resume from pause
-let daysPerSecond = 40;
-
 function render() {
   setPlanetPositions();
-  if (!paused) pointCameraForMode();
+  if (!skyAnimator.isPaused) pointCameraForMode();
   renderer.render(scene, camera);
   overlayDate();
 }
@@ -161,8 +146,11 @@ function pointCameraForMode() {
     let rmean = labels.meansun.position;
     [x, z] = [rmean.x, rmean.z];
   }
-  camera.lookAt(x, 0, z);
+  if (polarAnimator.isPolar) camera.lookAt(0, 0, 0);
+  else camera.lookAt(x, 0, z);
 }
+
+/* ------------------------------------------------------------------------ */
 
 function addListenerTo(elem, eventType, callback) {
   elem.addEventListener(eventType, callback);
@@ -171,13 +159,33 @@ function addListenerTo(elem, eventType, callback) {
 function connectRadioButton(id, callback) {
   const elem = document.getElementById(id);
   elem.addEventListener("change", callback);
+  radioButtons.push(elem);
+}
+
+const radioButtons = [];
+
+function disableRadioButtons(state=true) {
+  radioButtons.forEach(b => {
+    if (b.checked) return;
+    disableLabeledInput(b, state);
+  });
+}
+
+function disableLabeledInput(elem, state) {
+  if (state) {
+    elem.setAttribute("disabled", "");
+    elem.parentElement.classList.add("disabled");
+  } else {
+    elem.removeAttribute("disabled");
+    elem.parentElement.classList.remove("disabled");
+  }
 }
 
 function date4jd(jd) {
   let date = dateOfDay(jd);
   return (date.getFullYear() + "-" +
-          ('0' + (1+date.getMonth())).slice(-2) + "-" +
-          ('0' + date.getDate()).slice(-2));
+          ("0" + (1+date.getMonth())).slice(-2) + "-" +
+          ("0" + date.getDate()).slice(-2));
 }
 
 function jd4date(text) {
@@ -210,6 +218,165 @@ function gotoStartDate() {
   setPlanetPositions();  // before pointCameraMode, even if paused
   pointCameraForMode();
   render();
+}
+
+const DATE_ELEM = document.getElementById("date");
+const PAUSE_ELEM = document.getElementById("pause");
+const PLAY_ELEM = document.getElementById("play");
+const DIALOG_ELEM = document.getElementById("dialog");
+const CHEVRON_ELEM = document.getElementById("chevron-right");
+const XMARK_ELEM = document.getElementById("xmark");
+
+const LEFT_DIALOG = document.getElementById("left-dialog");
+const DIALOG_HIDER = `translate(-${LEFT_DIALOG.clientWidth}px)`;
+DIALOG_ELEM.style.transform = DIALOG_HIDER;
+
+connectRadioButton("sky", () => setTrackingMode("sky"));
+connectRadioButton("sun", () => setTrackingMode("sun"));
+connectRadioButton("venus", () => setTrackingMode("venus"));
+connectRadioButton("mars", () => setTrackingMode("mars"));
+
+function setTrackingMode(mode) {
+  cameraTracking(mode);
+  disableRadioButtons(showOrbits);
+  if (mode == "venus") {
+    disableLabeledInput(POLAR_CHECKBOX, !showOrbits);
+    disableLabeledInput(AS_EPI_CHECKBOX, true);
+  } else if (mode == "mars") {
+    disableLabeledInput(POLAR_CHECKBOX, !showOrbits);
+    disableLabeledInput(AS_EPI_CHECKBOX, false);
+  } else {
+    disableLabeledInput(POLAR_CHECKBOX, true);
+    disableLabeledInput(AS_EPI_CHECKBOX, true);
+  }
+}
+
+const DATE_BOX = document.getElementById("date-box");
+addListenerTo(DATE_BOX, "change", setStartDate);
+const RESTART_BUTTON = document.getElementById("restart");
+addListenerTo(RESTART_BUTTON, "click", gotoStartDate);
+const FULLSCREEN_ICON = document.querySelector("#fullscreen > use");
+document.getElementById("fullscreen").addEventListener("click",
+                                                       toggleFullscreen);
+
+let showOrbits=false, asEpicycles=false;
+document.getElementById("showorb").addEventListener("change", (e) => {
+  showOrbits = e.target.checked;
+  setTrackingMode(trackingMode);
+});
+const AS_EPI_CHECKBOX = document.getElementById("asepi");
+AS_EPI_CHECKBOX.addEventListener("change", (e) => {
+  asEpicycles = e.target.checked;
+  setTrackingMode(trackingMode);
+});
+const POLAR_CHECKBOX = document.getElementById("polar");
+POLAR_CHECKBOX.addEventListener("change", (e) => {
+  setTrackingMode(trackingMode);
+  if (e.target.checked) {
+    ["saturn", "jupiter", "mercury"].forEach(p => {
+      planets[p].visible = false; });
+    if (trackingMode == "mars") planets.venus.visible = false;
+    else planets.mars.visible = false;
+  }
+  polarAnimator.toggle();
+});
+
+function overlayDate() {
+  DATE_ELEM.innerHTML = date4jd((jdNow===null)? jdInitial : jdNow);
+}
+
+const _dummyVector = new THREE.Vector3();
+
+function togglePause() {
+  if (polarAnimator.isPlaying) return;
+  if (!skyAnimator.isPaused) {
+    ppToggler(PLAY_ELEM, PAUSE_ELEM);
+    controls.enabled = true;
+    if (!dialogOpen) CHEVRON_ELEM.classList.remove("hidden");
+    skyAnimator.pause();
+  } else {
+    ppToggler(PAUSE_ELEM, PLAY_ELEM);
+    controls.enabled = trackingMode == "sky";
+    camera.up.set(0, 1, 0);
+    let dir = camera.getWorldDirection(_dummyVector);
+    if (dir.x != 0 || dir.z != 0) {
+      dir.y = 0;
+      dir.normalize();
+    } else {
+      dir.set(1, 0, 0);
+    }
+    if (polarAnimator.isPolar) camera.lookAt(0, 0, 0);
+    else camera.lookAt(dir.x, 0, dir.z);
+    if (!dialogOpen
+        && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
+    skyAnimator.play();
+  }
+}
+
+function ppToggler(elemOn, elemOff, toggler) {
+  elemOff.removeEventListener("click", togglePause);
+  elemOff.classList.add("hidden");
+  elemOn.classList.remove("hidden");
+  elemOn.addEventListener("click", togglePause);
+}
+
+addListenerTo(PAUSE_ELEM, "click", togglePause);
+
+function toggleDialog() {
+  dialogOpen = !dialogOpen;
+  if (dialogOpen) {
+    diaToggler(XMARK_ELEM, CHEVRON_ELEM);
+    DIALOG_ELEM.style.transform = "translate(0)";
+    DATE_BOX.value = date4jd(jdInitial);
+  } else {
+    diaToggler(CHEVRON_ELEM, XMARK_ELEM);
+    DIALOG_ELEM.style.transform = DIALOG_HIDER;
+    if (trackingMode != "sky" &&
+        !skyAnimator.isPaused) CHEVRON_ELEM.classList.add("hidden");
+  }
+}
+
+function diaToggler(elemOn, elemOff) {
+  elemOff.removeEventListener("click", toggleDialog);
+  elemOff.classList.add("hidden");
+  elemOn.classList.remove("hidden");
+  elemOn.addEventListener("click", toggleDialog);
+}
+
+addListenerTo(CHEVRON_ELEM, "click", toggleDialog);
+
+/* ------------------------------------------------------------------------ */
+
+function setPlanetPositions() {
+  const jd = (jdNow===null)? jdInitial : jdNow;
+  let x, y, z;
+  for (let p of ["sun", "venus", "mars", "jupiter", "saturn", "mercury"]) {
+    [x, y, z] = ssModel1.xyzRel(p, jd);
+    // xecl -> zgl, yecl -> xgl, zecl -> ygl
+    planets[p].position.set(y, z, x);
+    labels[p].position.set(y, z, x);
+  }
+  const sun = planets.sun.position;
+  const mars = planets.mars.position;
+  labels.antisun.position.set(-sun.x, -sun.y, -sun.z);
+  labels.sunmars.position.set(mars.x-sun.x, mars.y-sun.y, mars.z-sun.z);
+  [x, y, z] = jd2xyz.sun(jd);
+  labels.meansun.position.set(x, 0, z);
+  if (showOrbits) {
+    if (trackingMode == "sky") {
+      ellipseShapes.venus.position.set(sun.x, sun.y, sun.z);
+      ellipseShapes.mars.position.set(sun.x, sun.y, sun.z);
+    } else if (trackingMode == "venus") {
+      ellipseShapes.venus.position.set(sun.x, sun.y, sun.z);
+    } else if (trackingMode == "mars") {
+      if (asEpicycles) {
+        const p = labels.sunmars.position;
+        ellipseShapes.sun.position.set(p.x, p.y, p.z);
+      } else {
+        ellipseShapes.mars.position.set(sun.x, sun.y, sun.z);
+      }
+    }
+  }
 }
 
 const CIRCLE_N = 180;  // actually 181 points
@@ -259,170 +426,7 @@ function setEllipseShapes(day) {
   }
 }
 
-const DATE_ELEM = document.getElementById("date");
-const PAUSE_ELEM = document.getElementById("pause");
-const PLAY_ELEM = document.getElementById("play");
-const DIALOG_ELEM = document.getElementById("dialog");
-const CHEVRON_ELEM = document.getElementById("chevron-right");
-const XMARK_ELEM = document.getElementById("xmark");
-
-const LEFT_DIALOG = document.getElementById("left-dialog");
-const DIALOG_HIDER = `translate(-${LEFT_DIALOG.clientWidth}px)`;
-DIALOG_ELEM.style.transform = DIALOG_HIDER;
-
-connectRadioButton("sky", () => cameraTracking("sky"));
-connectRadioButton("sun", () => cameraTracking("sun"));
-connectRadioButton("venus", () => cameraTracking("venus"));
-connectRadioButton("mars", () => cameraTracking("mars"));
-
-const DATE_BOX = document.getElementById("date-box");
-addListenerTo(DATE_BOX, "change", setStartDate);
-const RESTART_BUTTON = document.getElementById("restart");
-addListenerTo(RESTART_BUTTON, "click", gotoStartDate);
-const FULLSCREEN_ICON = document.querySelector("#fullscreen > use");
-document.getElementById("fullscreen").addEventListener("click",
-                                                       toggleFullscreen);
-
-let showOrbits=false, asEpicycles=false;
-document.getElementById("showorb").addEventListener("change", (e) => {
-  showOrbits = e.target.checked;
-  cameraTracking(trackingMode);
-});
-document.getElementById("asepi").addEventListener("change", (e) => {
-  asEpicycles = e.target.checked;
-  cameraTracking(trackingMode);
-});
-
-function amFullscreen() {
-  return (document.fullScreenElement && document.fullScreenElement !== null) ||
-    (document.mozFullScreen || document.webkitIsFullScreen);
-}
-
-function goFullscreen() {
-  if (amFullscreen()) return;
-  const el = document.documentElement;
-  const rfs = el.requestFullScreen || el.webkitRequestFullScreen ||
-        el.mozRequestFullScreen || el.msRequestFullscreen;
-  rfs.call(el);
-}
-
-function stopFullscreen() {
-  if (!amFullscreen()) return;
-  const el = document;
-  const cfs = el.cancelFullScreen || el.webkitCancelFullScreen ||
-        el.mozCancelFullScreen || el.exitFullscreen || el.webkitExitFullscreen;
-  cfs.call(el);
-}
-
-if (amFullscreen()) {
-  FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-compress");
-}
-
-function toggleFullscreen() {
-  if (amFullscreen()) {
-    stopFullscreen();
-    FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-expand");
-  } else {
-    goFullscreen();
-    FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-compress");
-  }
-}
-
-function overlayDate() {
-  DATE_ELEM.innerHTML = date4jd((jdNow===null)? jdInitial : jdNow);
-}
-
-const _dummyVector = new THREE.Vector3();
-
-function togglePause() {
-  paused = !paused;
-  if (paused) {
-    ppToggler(PLAY_ELEM, PAUSE_ELEM);
-    controls.enabled = true;
-    let id = animationFrameId;
-    animationFrameId = undefined;
-    if (id !== undefined) cancelAnimationFrame(id);
-    if (!dialogOpen) CHEVRON_ELEM.classList.remove("hidden");
-  } else {
-    ppToggler(PAUSE_ELEM, PLAY_ELEM);
-    controls.enabled = trackingMode == "sky";
-    camera.up.set(0, 1, 0);
-    let dir = camera.getWorldDirection(_dummyVector);
-    if (dir.x != 0 || dir.z != 0) {
-      dir.y = 0;
-      dir.normalize();
-    } else {
-      dir.set(1, 0, 0);
-    }
-    camera.lookAt(dir.x, 0, dir.z);
-    msPrev = null;  // signal resume from pause
-    animate();
-    if (!dialogOpen && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
-  }
-}
-
-function ppToggler(elemOn, elemOff, toggler) {
-  elemOff.removeEventListener("click", togglePause);
-  elemOff.classList.add("hidden");
-  elemOn.classList.remove("hidden");
-  elemOn.addEventListener("click", togglePause);
-}
-
-addListenerTo(PAUSE_ELEM, "click", togglePause);
-
-function toggleDialog() {
-  dialogOpen = !dialogOpen;
-  if (dialogOpen) {
-    diaToggler(XMARK_ELEM, CHEVRON_ELEM);
-    DIALOG_ELEM.style.transform = "translate(0)";
-    DATE_BOX.value = date4jd(jdInitial);
-  } else {
-    diaToggler(CHEVRON_ELEM, XMARK_ELEM);
-    DIALOG_ELEM.style.transform = DIALOG_HIDER;
-    if (trackingMode != "sky" && !paused) CHEVRON_ELEM.classList.add("hidden");
-  }
-}
-
-function diaToggler(elemOn, elemOff) {
-  elemOff.removeEventListener("click", toggleDialog);
-  elemOff.classList.add("hidden");
-  elemOn.classList.remove("hidden");
-  elemOn.addEventListener("click", toggleDialog);
-}
-
-addListenerTo(CHEVRON_ELEM, "click", toggleDialog);
-
-function setPlanetPositions() {
-  const jd = (jdNow===null)? jdInitial : jdNow;
-  let x, y, z;
-  for (let p of ["sun", "venus", "mars", "jupiter", "saturn", "mercury"]) {
-    [x, y, z] = ssModel1.xyzRel(p, jd);
-    // xecl -> zgl, yecl -> xgl, zecl -> ygl
-    planets[p].position.set(y, z, x);
-    labels[p].position.set(y, z, x);
-  }
-  const sun = planets.sun.position;
-  const mars = planets.mars.position;
-  labels.antisun.position.set(-sun.x, -sun.y, -sun.z);
-  labels.sunmars.position.set(mars.x-sun.x, mars.y-sun.y, mars.z-sun.z);
-  [x, y, z] = jd2xyz.sun(jd);
-  labels.meansun.position.set(x, 0, z);
-  if (showOrbits) {
-    if (trackingMode == "sky") {
-      ellipseShapes.venus.position.set(sun.x, sun.y, sun.z);
-      ellipseShapes.mars.position.set(sun.x, sun.y, sun.z);
-    } else if (trackingMode == "venus") {
-      ellipseShapes.venus.position.set(sun.x, sun.y, sun.z);
-    } else if (trackingMode == "mars") {
-      if (asEpicycles) {
-        const p = labels.sunmars.position;
-        ellipseShapes.sun.position.set(p.x, p.y, p.z);
-      } else {
-        ellipseShapes.mars.position.set(sun.x, sun.y, sun.z);
-      }
-    }
-  }
-}
+/* ------------------------------------------------------------------------ */
 
 const solidLine = new LineMaterial({color: 0x335577, linewidth: 2});
 const dashedLine = new LineMaterial({
@@ -458,7 +462,7 @@ function setupSky() {
     camera.position.set(0, 0, 0);
     camera.up.set(0, 1, 0);
     camera.scale.set(1, 1, 1);
-    animate();
+    skyAnimator.play();
   }
 
   scene.background = new THREE.CubeTextureLoader()
@@ -541,6 +545,7 @@ function setupSky() {
   labels.mercury = makeLabel("mercury", {}, 2, 1.25);
   labels.jupiter = makeLabel("jupiter", {}, 2, 1.25);
   labels.saturn = makeLabel("saturn", {}, 2, 1.25);
+  labels.earth = makeLabel("earth", {}, 2, 1.25);
 
   camera.lookAt(1, 0, 0);
   cameraTracking("sky");
@@ -551,6 +556,7 @@ function setupSky() {
   scene.add(planets.jupiter);
   scene.add(planets.saturn);
   scene.add(planets.mercury);
+  scene.add(planets.earth);
 
   scene.add(labels.sun);
   scene.add(labels.venus);
@@ -561,6 +567,7 @@ function setupSky() {
   scene.add(labels.mercury);
   scene.add(labels.jupiter);
   scene.add(labels.saturn);
+  scene.add(labels.earth);
 
   setEllipseShapes(jdInitial);
   scene.add(ellipseShapes.sun);
@@ -664,29 +671,279 @@ window.addEventListener("resize", () => {
 
 /* ------------------------------------------------------------------------ */
 
-function setupModel() {
-  let geom = new LineGeometry();
-  geom.setPositions(
-    new THREE.EllipseCurve(0, 0, 100, 100).getPoints(24).map(
-      p => [p.x, p.y, 0]).flat());
-  const ecliptic = new Line2(geom, solidLine);
-  ecliptic.rotation.x = Math.PI / 2;
-  scene.add(ecliptic);
-  const equator = new Line2(geom, dashedLine);
-  equator.computeLineDistances();
-  equator.rotation.x = Math.PI / 2;
-  equator.rotation.y = -23.43928 * Math.PI/180.;
-  scene.add(equator);
-  geom = new LineSegmentsGeometry();
-  geom.setPositions([-3, 100, 0,   3, 100, 0,  0, 100, -3,   0, 100, 3,
-                        -3,-100, 0,   3,-100, 0,  0,-100, -3,   0,-100, 3]);
-  const poleMarks = new LineSegments2(geom, solidLine);
-  scene.add(poleMarks);
-  const qpoleMarks = new LineSegments2(geom, dashedLine);
-  qpoleMarks.computeLineDistances();
-  qpoleMarks.rotation.z = -23.43928 * Math.PI/180.;
-  scene.add(qpoleMarks);
+class Animator {
+  constructor(...parts) {
+    // Each argument is either a callback function or a delay time in ms.
+    // Callback function argument is ms with first call always 0 and
+    // subsequent calls the time interval since previous call in ms.
+    // The callback should return true when finished, false until then.
+    // Callbacks are invoked with 'this' set to Animator instance, so you
+    // can access other data you have stored as properties.
+
+    function makeTimer(timeout) {
+      const original = timeout;
+      let timeLeft = timeout;
+      function timer(dt) {
+        if (dt !== null) timeLeft -= dt;
+        else timeLeft = original;  // reset the timer
+        return timeLeft <= 0;
+      }
+      timer.wantsAnimatorResetCallback = true;
+      return timer;
+    }
+
+    this.parts = parts.map(p => Number.isFinite(p)? makeTimer(p) : p);
+    this.stepper = undefined;  // will be called by requestAnimationFrame
+    this.frameId = undefined;  // returned by requestAnimationFrame
+    this.onFinish = undefined;  // called when animation finishes
+    this._paused = true;
+  }
+
+  play = () => {
+    this._cancelPending();
+    this._paused = false;
+    let stepper = this.stepper;
+    if (stepper === undefined) {  // start new run
+      let msPrev = null, iPart = 0;
+      const self = this;
+      function stepper(ms) {  // argument is window.performance.now();
+        self._cancelPending();  // cancel any pending frame requests
+        if (ms !== null) {
+          const parts = self.parts;
+          let dms = 0;
+          if (msPrev !== null) {
+            dms = ms - msPrev;
+            if (dms <= 0) dms = 1;  // assure finite step after start
+          }
+          msPrev = ms;
+          while (parts[iPart].call(self, dms)) {  // iPart finished
+            iPart += 1;
+            if (iPart >= parts.length) {  // whole animation finished
+              self.stop();
+              return;
+            }
+            // This is a loop to permit any part to abort on its first call,
+            // and to make the initial call to the next part immediately
+            // after final call to previous part, rather than waiting for
+            // next animation frame request callback.
+            dms = 0;
+          }
+        } else {
+          // To wake up from pause, just reset msPrev to huge value.
+          // First step after pause will be very short interval (1 ms).
+          msPrev = 1.e30;
+        }
+        self.frameId = requestAnimationFrame(self.stepper);
+      }
+      self.stepper = stepper;
+      stepper(window.performance.now());
+    } else {  // wake up from pause
+      stepper(null);
+    }
+  }
+
+  pause = () => {
+    this._cancelPending();
+    this._paused = true;
+  }
+
+  stop = (noOnFinish=false) => {
+    this.pause();
+    this.stepper = undefined;
+    this.parts.forEach(p => {
+      if (p.wantsAnimatorResetCallback) p(null);
+    });
+    let onFinish = this.onFinish;
+    this.onFinish = undefined;
+    if (onFinish && !noOnFinish) onFinish.call(self);
+  }
+
+  get isPaused() {
+    return this._paused;
+  }
+
+  get isPlaying() {
+    return this.stepper !== undefined;
+  }
+
+  _cancelPending = () => {
+    let id = this.frameId;
+    this.frameId = undefined;
+    if (id !== undefined) cancelAnimationFrame(id);
+  }
 }
+
+class PolarViewAnimator extends Animator {
+  constructor(skyAnimator) {
+    super(dms => (this.rate > 0)? (dms => true) : this._longZoom(dms),
+          dms => (this.rate > 0)? this._rZoom(dms) : this._latZoom(dms),
+          dms => (this.rate > 0)? this._latZoom(dms) : this._rZoom(dms));
+
+    this.skyAnimator = skyAnimator;
+    this.rate = 0.002;  // sign toggles to indicate direction
+    this.polarFOV = 45;  // vertical FOV in polar view
+    this.rCameraMax = 0;  // rCamera goes from 0 to rCameraMax (venus 5, mars 7)
+    this.rCamera = 0;  // distance of polar view from earth (AU)
+    this.axisCamera = [0, 0, 1];
+    this.latCamera = 0;
+    this.longCamera = 0;
+    this.unpauseSky = false;
+    this._polar = false;
+  }
+
+  toggle() {
+    const skyAnimator = this.skyAnimator;
+    const mode = trackingMode;
+    const rCameraMax = PolarViewAnimator.rCameraMaxs[mode];
+    if (!rCameraMax) return;
+
+    this.rCameraMax = rCameraMax;
+    this.label = (mode == "venus")? labels.sun : labels.sunmars;
+    const unpauseSky = !skyAnimator.isPaused;
+    this.onFinish = () => {
+      this.rate = ((this.latCamera > 0.785)? -1 : 1) * Math.abs(this.rate);
+      if (this.rate > 0) {
+        camera.up.set(0, 1, 0);
+        ["saturn", "jupiter", "mars", "venus", "mercury"].forEach(p => {
+          planets[p].visible = true; });
+      }
+      const unpauseSky = this.unpauseSky;
+      this.unpauseSky = false;
+      if (unpauseSky) skyAnimator.play();
+    };
+    this.unpauseSky = unpauseSky;
+    if (unpauseSky) skyAnimator.pause();
+    this.play();
+  }
+
+  get isPolar() {
+    return this._polar;
+  }
+
+  _rZoom(dms) {
+    if (dms == 0) {
+      if (this.rate < 0) return;  // _longZoom first in this case
+      ["saturn", "jupiter", "mercury"].forEach(p => {
+        planets[p].visible = false; });
+      if (trackingMode == "mars") {
+        planets.venus.visible = false;
+        labels.antisun.visible = false;
+      } else {
+        planets.mars.visible = false;
+      }
+      // set camera axis, longitude, latitude
+      this._setupZoom();
+      return false;
+    }
+    const rMax = this.rCameraMax;
+    const dr = this.rate * dms;
+    let r = this.rCamera + dr;
+    let done = dr < 0 && r < 0;
+    if (done) {
+      r = 0;
+    } else {
+      done = dr > 0 && r > rMax;
+      if (done) r = rMax;
+    }
+    this.rCamera = r;
+    const frac = r / rMax;
+    const fov = VFOV*(1-frac) + this.polarFOV*frac;
+    const spriteScale = 2 * Math.tan(fov * Math.PI/360.) / HEIGHT;
+    for (let name in labels) {
+      const label = labels[name];
+      const width = label.userData.width, height = label.userData.height;
+      label.scale.set(width*spriteScale, height*spriteScale, 1);
+    }
+    const axis = this.axisCamera;
+    camera.position.set(r*axis[0], 0, r*axis[2]);
+    camera.fov = fov
+    camera.updateProjectionMatrix();
+    render();
+    return done;
+  }
+
+  _latZoom(dms) {
+    if (dms == 0) {
+      if (this.angRate > 0) this._polar = true;
+      return false;
+    }
+    const axis = this.axisCamera;
+    const dlat = this.angRate * dms;
+    let lat = this.latCamera + dlat;
+    let done = dlat < 0 && lat < 0;
+    if (done) {
+      this._polar = false;
+      lat = 0;
+    } else {
+      done = dlat > 0 && lat > Math.PI/2;
+      if (done) lat = Math.PI/2;
+    }
+    this.latCamera = lat;
+    let rMax = this.rCameraMax;
+    let c = rMax*Math.cos(lat), s = rMax*Math.sin(lat);
+    camera.position.set(c*axis[0], s, c*axis[2]);
+    camera.lookAt(0, 0, 0);
+    render();
+    return done;
+  }
+
+  _longZoom(dms) {
+    if (dms == 0) {
+      if (this.rate > 0) return;  // _rZoom first in this case
+      // set camera axis, longitude, latitude
+      let ax0 = [-this.axisCamera[2], -this.axisCamera[0]];
+      this._setupZoom();
+      let ax = [PolarViewAnimator.vec.z, PolarViewAnimator.vec.x];
+      // Complete rotation should take ax0 --> ax; both have y=0.
+      let ca = ax0[0]*ax[0] + ax0[1]*ax[1];
+      let sa = ax0[0]*ax[1] - ax0[1]*ax[0];
+      let lon = Math.atan2(sa, ca);  // total rotation about z (CCW>0, CW<0)
+      this.longSign = (lon < 0)? 1 : -1;
+      lon = Math.abs(lon);
+      if (lon < 1.e-3) return true;
+      this.longCamera = lon;
+      return false;
+    }
+    let dlong = this.angRate * dms;  // always < 0!
+    let lon = this.longCamera + dlong;
+    let done = lon <= 0;
+    if (done) {
+      lon = 0;
+      dlong = -this.longCamera;
+    }
+    this.longCamera = lon;
+    camera.rotateZ(this.longSign * dlong);  // in camera coordinates
+    render();
+    return done;
+  }
+
+  _setupZoom() {
+    const rMax = this.rCameraMax;
+    this.angRate = this.rate * 1.57/rMax;
+    const vec = PolarViewAnimator.vec;
+    vec.copy(this.label.position);
+    vec.y = 0;
+    vec.normalize();
+    this.axisCamera = [-vec.x, 0, -vec.z];
+    let sqrth = Math.sqrt(0.5);
+    camera.up.set(sqrth*vec.x, sqrth, sqrth*vec.z);
+  }
+
+  static rCameraMaxs = {venus: 5, mars: 7};
+  static vec = new THREE.Vector3();
+}
+
+const skyAnimator = new Animator(dms => {
+  if (jdNow === null) {
+    jdNow = jdInitial;
+  } else {
+    jdNow += 0.001 * dms * daysPerSecond;
+  }
+  render();
+  return false;
+});
+
+const polarAnimator = new PolarViewAnimator(skyAnimator);
 
 /* ------------------------------------------------------------------------ */
 // SkyControls allows you to drag the sky more intuitively than any of
@@ -925,9 +1182,45 @@ controls.enabled = trackingMode == "sky";
 
 /* ------------------------------------------------------------------------ */
 
+function amFullscreen() {
+  return (document.fullScreenElement && document.fullScreenElement !== null) ||
+    (document.mozFullScreen || document.webkitIsFullScreen);
+}
+
+function goFullscreen() {
+  if (amFullscreen()) return;
+  const el = document.documentElement;
+  const rfs = el.requestFullScreen || el.webkitRequestFullScreen ||
+        el.mozRequestFullScreen || el.msRequestFullscreen;
+  rfs.call(el);
+}
+
+function stopFullscreen() {
+  if (!amFullscreen()) return;
+  const el = document;
+  const cfs = el.cancelFullScreen || el.webkitCancelFullScreen ||
+        el.mozCancelFullScreen || el.exitFullscreen || el.webkitExitFullscreen;
+  cfs.call(el);
+}
+
+if (amFullscreen()) {
+  FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-compress");
+}
+
+function toggleFullscreen() {
+  if (amFullscreen()) {
+    stopFullscreen();
+    FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-expand");
+  } else {
+    goFullscreen();
+    FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-compress");
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+
 if ( WebGL.isWebGLAvailable() ) {
   setupSky();
-  // setupModel();
 } else {
   const warning = WebGL.getWebGLErrorMessage();
   document.getElementById( 'container' ).appendChild( warning );
