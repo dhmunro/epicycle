@@ -112,7 +112,8 @@ function cameraTracking(tracking) {
     ellipses[name].visible = false;
   }
   if (showOrbits) {
-    ellipses.sun.visible = true;
+    ellipses.earth.visible = helioCenter;
+    ellipses.sun.visible = !helioCenter;
     ellipses.sun.position.set(0, 0, 0);
     ellipses.mars.position.set(0, 0, 0);
     if (skyMode) {
@@ -325,16 +326,17 @@ function togglePause() {
   } else {
     ppToggler(PAUSE_ELEM, PLAY_ELEM);
     controls.enabled = trackingMode == "sky";
-    camera.up.set(0, 1, 0);
-    let dir = camera.getWorldDirection(_dummyVector);
-    if (dir.x != 0 || dir.z != 0) {
-      dir.y = 0;
-      dir.normalize();
-    } else {
-      dir.set(1, 0, 0);
+    if (!polarAnimator.isPolar) {
+      camera.up.set(0, 1, 0);
+      let dir = camera.getWorldDirection(_dummyVector);
+      if (dir.x != 0 || dir.z != 0) {
+        dir.y = 0;
+        dir.normalize();
+      } else {
+        dir.set(1, 0, 0);
+      }
+      camera.lookAt(dir.x, 0, dir.z);
     }
-    if (polarAnimator.isPolar) camera.lookAt(0, 0, 0);
-    else camera.lookAt(dir.x, 0, dir.z);
     if (!dialogOpen
         && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
     skyAnimator.play();
@@ -391,6 +393,7 @@ function setPlanetPositions() {
   [x, y, z] = jd2xyz.sun(jd);
   labels.meansun.position.set(x, 0, z);
   if (showOrbits) {
+    ellipses.earth.position.set(sun.x, sun.y, sun.z);
     const venus = planets.venus.position;
     if (trackingMode == "sky") {
       ellipses.venus.position.set(sun.x, sun.y, sun.z);
@@ -438,10 +441,11 @@ const fatLineMaterials = [];
 const ellipses = (() => {
   const shapes = { matrix: new THREE.Matrix4(), vector: new THREE.Vector3() };
   [["sun", 0xccccff], ["venus", 0xcccccc],
-   ["earth", 0xffffcc], ["mars", 0xffcccc]].forEach(([p, c]) => {
+   ["earth", 0xccccff], ["mars", 0xffcccc]].forEach(([p, c]) => {
      let geom = new LineGeometry();
      geom.setPositions(circlePoints.flat());
-     shapes[p] = new Line2(geom, new LineMaterial({color: c, linewidth: 2}));
+     shapes[p] = new Line2(geom, new LineMaterial(
+       {color: c, linewidth: 2, dashed: false, dashSize: 0.03, gapSize: 0.05}));
      fatLineMaterials.push(shapes[p].material);
      shapes[p].visible = false;
      scene.add(shapes[p]);
@@ -491,7 +495,7 @@ function setEllipseShapes(day) {
     geom.setPositions(pts.flat());
     if (p == "earth") {
       geom = ellipses.sun.geometry;
-      geom.setPositions(pts.map(p => [-p[0], p[1], -p[2]]).flat());
+      geom.setPositions(pts.map(p => [-p[0], -p[1], -p[2]]).flat());
     }
   }
 }
