@@ -996,7 +996,6 @@ class PolarViewAnimator extends Animator {
     let rMax = this.rCameraMax;
     let c = rMax*Math.cos(lat), s = rMax*Math.sin(lat);
     camera.position.set(c*axis[0], s, c*axis[2]);
-    if (done) console.log("polar", camera.position);
     camera.lookAt(0, 0, 0);
     render();
     return done;
