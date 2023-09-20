@@ -95,34 +95,34 @@
           <use xlink:href="#fa-expand"/></svg>
         <p style="text-align: center; margin-top: 0;">
           Drag sky to look around!</p>
+        <p>Start:
+          <input type="text" id="date-box" name="date"
+                 value="2000-01-01" maxLength="11" size="11"/>
+          <button id="restart">Go To Start</button>
+        </p>
         <label><input type="radio" id="sky" name="pointing" value="sky"
                       autocomplete="off" checked/>
           How the Sun and Planets Move</label><br/>
-        
         <label><input type="radio" id="sun" name="pointing" value="sun"
                       autocomplete="off"/>
           Sun's Motion Not Quite Uniform</label><br/>
         <label><input type="radio" id="venus" name="pointing" value="venus"
                       autocomplete="off"/>
           How Venus Moves</label><br/>
-        
         <label><input type="radio" id="mars" name="pointing" value="mars"
                       autocomplete="off"/>
           How Mars Moves</label><br/>
-        <p>Start:
-          <input type="text" id="date-box" name="date"
-                 value="2000-01-01" maxLength="11" size="11"/>
-          <button id="restart">Go To Start</button>
-        </p>
-        <label><input type="checkbox" id="showorb" value="show"
-                      autocomplete="off"/>
+        <label><input type="checkbox" id="showorb" autocomplete="off"/>
           Show Orbits</label>&nbsp;&nbsp;
-        <label class="disabled"><input type="checkbox" id="asepi" value="asepi"
-                      autocomplete="off" disabled=true/>
-          ...as epicycles</label><br/>
-        <label class="disabled"><input type="checkbox" id="polar" value="polar"
-                      autocomplete="off" disabled=true/>
-          View from Deep Space</label>
+        <label class="disabled"><input type="checkbox" id="swap"
+                                       autocomplete="off" disabled/>
+          swap centers</label><br/>
+        <label class="disabled"><input type="checkbox" id="polar"
+                                       autocomplete="off" disabled/>
+          Deep Space View</label>&nbsp;&nbsp;
+        <label class="disabled"><input type="checkbox" id="helio"
+                                       autocomplete="off" disabled/>
+          sun center</label>
       </div><svg id="chevron-right" class="tab"
                  xmlns="http://www.w3.org/2000/svg"
                  height="2em" viewBox="0 0 320 512">
