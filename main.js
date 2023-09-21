@@ -320,6 +320,18 @@ function overlayDate() {
 
 const _dummyVector = new THREE.Vector3();
 
+function recenterEcliptic() {
+  camera.up.set(0, 1, 0);
+  let dir = camera.getWorldDirection(_dummyVector);
+  if (dir.x != 0 || dir.z != 0) {
+    dir.y = 0;
+    dir.normalize();
+  } else {
+    dir.set(1, 0, 0);
+  }
+  camera.lookAt(dir.x, 0, dir.z);
+}
+
 function togglePause() {
   if (polarAnimator.isPlaying) return;
   if (!skyAnimator.isPaused) {
@@ -330,17 +342,7 @@ function togglePause() {
   } else {
     ppToggler(PAUSE_ELEM, PLAY_ELEM);
     controls.enabled = trackingMode == "sky";
-    if (!polarAnimator.isPolar) {
-      camera.up.set(0, 1, 0);
-      let dir = camera.getWorldDirection(_dummyVector);
-      if (dir.x != 0 || dir.z != 0) {
-        dir.y = 0;
-        dir.normalize();
-      } else {
-        dir.set(1, 0, 0);
-      }
-      camera.lookAt(dir.x, 0, dir.z);
-    }
+    if (!polarAnimator.isPolar) recenterEcliptic();
     if (!dialogOpen
         && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
     skyAnimator.play();
@@ -929,7 +931,10 @@ class PolarViewAnimator extends Animator {
       if (unpauseSky) skyAnimator.play();
       else render();  // to have visibility changes take effect
     };
-    if (!this._polar) disableRadioButtons(true);
+    if (!this._polar) {
+      disableRadioButtons(true);
+      pointCameraForMode();
+    }
     disableLabeledInput(HELIO_CHECKBOX, true);
     this.unpauseSky = unpauseSky;
     if (unpauseSky) skyAnimator.pause();
