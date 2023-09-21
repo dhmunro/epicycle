@@ -48,7 +48,7 @@ function setFOVParams(width, height) {
 setFOVParams(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(VFOV, ASPECT, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(VFOV, ASPECT, 0.1, 2000);
 const renderer = new THREE.WebGLRenderer(
   {canvas: document.getElementById("container"), antialias: true, alpha: true});
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -511,7 +511,7 @@ function setEllipseShapes(day) {
 const solidLine = new LineMaterial({color: 0x335577, linewidth: 2});
 const dashedLine = new LineMaterial({
   color: 0x335577, linewidth: 3,
-  dashed: true, dashScale: 1.5, dashSize: 1, gapSize: 1});
+  dashed: true, dashScale: 1.5, dashSize: 10, gapSize: 10});
 fatLineMaterials.push(solidLine, dashedLine);
 
 function setFatLineResolutions() {
@@ -556,7 +556,7 @@ function setupSky() {
   setFatLineResolutions();
   let geom = new LineGeometry();
   geom.setPositions(
-    new THREE.EllipseCurve(0, 0, 100, 100).getPoints(24).map(
+    new THREE.EllipseCurve(0, 0, 1000, 1000).getPoints(24).map(
       p => [p.x, p.y, 0]).flat());
   const ecliptic = new Line2(geom, solidLine);
   ecliptic.rotation.x = Math.PI / 2;
@@ -567,8 +567,8 @@ function setupSky() {
   equator.rotation.y = -23.43928 * Math.PI/180.;
   scene.add(equator);
   geom = new LineSegmentsGeometry();
-  geom.setPositions([-3, 100, 0,   3, 100, 0,  0, 100, -3,   0, 100, 3,
-                     -3,-100, 0,   3,-100, 0,  0,-100, -3,   0,-100, 3]);
+  geom.setPositions([-30, 1000, 0,  30, 1000, 0, 0, 1000, -30,  0, 1000, 30,
+                     -30,-1000, 0,  30,-1000, 0, 0,-1000, -30,  0,-1000, 30]);
   const poleMarks = new LineSegments2(geom, solidLine);
   scene.add(poleMarks);
   const qpoleMarks = new LineSegments2(geom, dashedLine);
@@ -750,23 +750,31 @@ function makeLabel(text, params, tick=0, gap=-0.5) {
 window.addEventListener("resize", () => {
   const elem = renderer.domElement;
   setFOVParams(window.innerWidth, window.innerHeight);
+  elem.width = WIDTH;
+  elem.height = HEIGHT;
+  camera.aspect = ASPECT;
+  let fov, spriteScale;
+  if (polarAnimator.isPolar) {
+    fov = polarAnimator.polarFOV;
+    spriteScale = 2 * Math.tan(fov * Math.PI/360.) / HEIGHT;
+  } else {
+    fov = VFOV;
+    spriteScale = SPRITE_SCALE;
+  }
+  camera.fov = fov;
+  camera.updateProjectionMatrix();
+  renderer.setSize(WIDTH, HEIGHT);
+  setFatLineResolutions();
   for (let name in labels) {
     const sprite = labels[name];
     const width=sprite.userData.width, height=sprite.userData.height;
-    sprite.scale.set(width*SPRITE_SCALE, height*SPRITE_SCALE, 1);
+    sprite.scale.set(width*spriteScale, height*spriteScale, 1);
   }
   for (let name in planets) {
     const sprite = planets[name];
     const width=sprite.userData.width, height=sprite.userData.height;
-    sprite.scale.set(width*SPRITE_SCALE, height*SPRITE_SCALE, 1);
+    sprite.scale.set(width*spriteScale, height*spriteScale, 1);
   }
-  elem.width = WIDTH;
-  elem.height = HEIGHT;
-  camera.aspect = ASPECT;
-  camera.fov = VFOV;
-  camera.updateProjectionMatrix();
-  renderer.setSize(WIDTH, HEIGHT);
-  setFatLineResolutions();
   render();
 }, false);
 
