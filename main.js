@@ -254,7 +254,7 @@ function setTrackingMode(mode) {
     disableLabeledInput(SWAP_CHECKBOX, true);
   } else if (mode == "mars") {
     disableLabeledInput(POLAR_CHECKBOX, !showOrbits || helioCenter);
-    disableLabeledInput(SWAP_CHECKBOX, false);
+    disableLabeledInput(SWAP_CHECKBOX, helioCenter);
   } else {
     disableLabeledInput(POLAR_CHECKBOX, true);
     if (SWAP_CHECKBOX.checked) unswapCenters();
@@ -306,8 +306,12 @@ POLAR_CHECKBOX.addEventListener("change", (e) => {
 let helioCenter = false;
 const HELIO_CHECKBOX = document.getElementById("helio");
 HELIO_CHECKBOX.addEventListener("change", (e) => {
-  helioCenter = e.target.checked;
-  setTrackingMode(trackingMode);
+  // helioCenter = e.target.checked;
+  // setTrackingMode(trackingMode);
+  if (helioCenter == !e.target.checked) {
+    if (!helioCenter) disableLabeledInput(SWAP_CHECKBOX, true);
+    helioAnimator.toggle();
+  }
 });
 
 function overlayDate() {
@@ -494,6 +498,8 @@ function setEllipseShapes(day) {
     let geom = ellipses[p].geometry;
     geom.setPositions(pts.flat());
     if (p == "earth") {
+      ellipses.earth.computeLineDistances();
+      ellipses.sun.computeLineDistances();
       geom = ellipses.sun.geometry;
       geom.setPositions(pts.map(p => [-p[0], -p[1], -p[2]]).flat());
     }
@@ -1142,6 +1148,107 @@ class OrbitCenterSwapper extends Animator {
 }
 
 const swapAnimator = new OrbitCenterSwapper();
+
+class HelioCenterSwapper extends Animator {
+  constructor() {
+    super(dms => this._swapper(dms), dms => this._slider(dms));
+
+    this.swapTime = 2;  // time to swap in seconds
+    this.frac = 0;
+    this.unpauseSky = false;
+  }
+
+  toggle() {
+    const unpauseSky = !skyAnimator.isPaused;
+    this.onFinish = () => {
+      const unpauseSky = this.unpauseSky;
+      this.unpauseSky = false;
+      helioCenter = !helioCenter;
+      ellipses.sun.material.dashed = false;
+      ellipses.earth.material.dashed = false;
+      setTrackingMode(trackingMode);
+      if (unpauseSky) skyAnimator.play();
+    };
+    this.unpauseSky = unpauseSky;
+    if (unpauseSky) skyAnimator.pause();
+    this.play();
+  }
+
+  _swapper(dms) {
+    if (dms == 0) {
+      this.rate = 0.001 * Math.PI / this.swapTime;
+      this.ang = Math.PI;
+      if (helioCenter) {
+        this.active = ellipses.sun;
+        this.passive = ellipses.earth;
+        this.pos0 = planets.sun.position;
+        this.pos1 = planets.earth.position;
+      } else {
+        this.active = ellipses.earth;
+        this.passive = ellipses.sun;
+        this.pos0 = planets.earth.position;
+        this.pos1 = planets.sun.position;
+      }
+      this.active.visible = true;
+      this.passive.material.dashed = true;
+      this.pos0 = [this.pos0.x, this.pos0.y, this.pos0.z];
+      this.pos1 = [this.pos1.x, this.pos1.y, this.pos1.z];
+      return false;
+    }
+    const yaxis = HelioCenterSwapper.yaxis;
+    let ang = this.ang;
+    ang -= this.rate * dms;
+    let done = ang <= 0;
+    if (done) ang = 0;
+    this.ang = ang;
+    // start active at pos0 rotated by pi, animate to pos1 rotated by 0
+    let pos0 = this.pos0, pos1 = this.pos1;
+    if (done) {
+      this.active.position.set(0, 0, 0);
+      this.active.setRotationFromAxisAngle(yaxis, 0);
+      this.active.position.set(...this.pos1);
+    } else {
+      this.active.position.set(0, 0, 0);
+      this.active.setRotationFromAxisAngle(yaxis, ang);
+      const cen = pos1.map((p, i) => 0.5*(p + pos0[i]));
+      const dp = pos1.map((p, i) => p - cen[i]);  // dp[1] always very near 0
+      const c = Math.cos(ang), s = Math.sin(ang);
+      const pos = [cen[0]+c*dp[0]+s*dp[2], cen[1], cen[2]+c*dp[2]-s*dp[0]];
+      this.active.position.set(...pos);
+    }
+    renderer.render(scene, camera);  // raw render
+    return done;
+  }
+
+  _slider(dms) {
+    if (dms == 0) {
+      // most setup already done in _swapper
+      this.rate = 0.001 / this.swapTime;
+      this.frac = 0;
+      this.ycamera = camera.position.y;
+      return false;
+    }
+    let frac = this.frac;
+    frac += this.rate * dms;
+    let done = frac >= 1;
+    if (done) frac = 1;
+    this.frac = frac;
+    // active has arrived at pos1 from pos0, need camera to pan to look there
+    let pos0 = this.pos0, pos1 = this.pos1;
+    const pos = pos1.map((p, i) => pos0[i]*(1-frac) + p*frac);
+    camera.position.set(pos[0], this.ycamera, pos[2]);
+    if (done) {
+      this.passive.visible = false;
+      this.passive.material.dashed = false;
+    }
+    renderer.render(scene, camera);  // raw render
+    return done;
+  }
+
+  static yaxis = new THREE.Vector3(0, 1, 0);
+}
+
+const helioAnimator = new HelioCenterSwapper();
 
 /* ------------------------------------------------------------------------ */
 // SkyControls allows you to drag the sky more intuitively than any of
