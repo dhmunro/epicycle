@@ -6,10 +6,12 @@
           content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <title>Seeing the Solar System</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&display=swap');
       body {
           margin: 0;
           overflow: hidden;
           background: black;
+          font-family: 'Merriweather', serif;
       }
       .date-buttons {
           position: absolute;
@@ -17,9 +19,16 @@
           left: 20px;
           user-select: none;
       }
+      .top-buttons {
+          position: absolute;
+          top: 20px;
+          right: 0;  /* 20px margin in button takes care of this */
+          user-select: none;
+      }
       #date {
           display: inline;
-          font: 2em Arial, sans-serif;
+          font: 2em 'Merriweather Sans', Arial, sans-serif;
+          font-variant-numeric: tabular-nums;
           color: white;
       }
       .button {
@@ -50,7 +59,7 @@
       }
       .disabled {
           color: #666666;
-          font-style: oblique;
+          /* font-style: oblique;  changes element width :( */
       }
       .left-dialog {
           display: inline-block;
@@ -59,8 +68,63 @@
           border-radius: 0px 0px 16px 0px;
           padding: 10px;
           transform: translate(0px);
-          font: 1.5em Arial, sans-serif;
+          font: 1.5em 'Merriweather Sans', Arial, sans-serif;
           color: black;
+      }
+      .title-container {
+          position: absolute;
+          top: 50px;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+      }
+      .title {
+          padding: 10px 12px;
+          overflow: hidden;
+          background: #ffffffc0;
+          color: black;
+          border-radius: 16px;
+          border-style: solid;
+          user-select: none;
+      }
+      .title-break {
+          flex-basis: 100%;
+          height: 0;
+      }
+      .text-button {
+          display: table;
+          margin: auto;
+          cursor: pointer;
+          padding: 5px 7px;
+          border-radius: 10px;
+          border-style: solid;
+          border-width: 3px;
+          border-color: #ffffff
+      }
+      .text-button:hover {
+          background: #e0e0e0;
+          border-style: outset;
+      }
+      .text-button:active {
+          background: #ffffff;
+          border-style: inset;
+      }
+      .title-close {
+          float: right;
+          cursor: pointer;
+          border-radius: 6px;
+      }
+      .title-close:hover {
+          background: #cccccc;
+      }
+      .tour-h2 {
+          text-align: center;
+          font-style: bold;
+          font-size: 1.5em;
+      }
+      .tour-p {
+          text-align: center;
+          font-size: 1.2em;
       }
     </style>
     <script
@@ -78,6 +142,13 @@
   </head>
   <body>
     <canvas id="container"></canvas>
+    <div class="title-container"><div id="thetitle" class="title">
+        <svg id="xtitle" class="title-close" xmlns="http://www.w3.org/2000/svg"
+             height="2em" viewBox="0 0 384 512">
+        <use xlink:href="#fa-xmark"/></svg><br/>
+        <h1>Seeing the Solar System</h1>
+        <div id="tour" class="text-button">Take Tour</div>
+    </div></div>
     <div class="date-buttons">
       <div id="date"></div>
       <svg id="pause" class="button" xmlns="http://www.w3.org/2000/svg"
@@ -123,7 +194,7 @@
         <label class="disabled"><input type="checkbox" id="helio"
                                        autocomplete="off" disabled/>
           sun center</label>
-      </div><svg id="chevron-right" class="tab"
+      </div><svg id="chevron-right" class="tab hidden"
                  xmlns="http://www.w3.org/2000/svg"
                  height="2em" viewBox="0 0 320 512">
         <use xlink:href="#fa-chevron-right"/>
@@ -133,6 +204,35 @@
         <use xlink:href="#fa-xmark"/></svg>
       </div>
     </div>
+    <div class="top-buttons">
+      <svg id="top-info" class="button"
+           xmlns="http://www.w3.org/2000/svg" height="2em" viewBox="0 0 512 512">
+        <use xlink:href="#fa-circle-info" /></svg>
+      <svg id="top-close" class="button hidden"
+           xmlns="http://www.w3.org/2000/svg" height="2em" viewBox="0 0 512 512">
+        <use xlink:href="#fa-circle-xmark" /></svg>
+    </div>
+    <div class="title-container"><div id="thetour" class="title hidden">
+        <div class="tour-topic hidden">
+          <h2 class="tour-h2">Watch how the Sun and planets move:</h2>
+          <p class="tour-p">Sun speeds up and slows down slightly</p>
+          <p class="tour-p hidden">Venus oscillates around the Sun</p>
+          <p class="tour-p hidden">Mars oscillates around Sun-Mars
+            direction</p>
+        </div>
+        <div class="tour-topic hidden">
+          <h2 class="tour-h2">Model any planet's motion with two orbits:</h2>
+          <p class="tour-p">Venus: Ancient model (earth at center)</p>
+          <p class="tour-p hidden">Venus: Modern model (sun at center)</p>
+          <p class="tour-p hidden">Mars: Ancient model (earth at center)</p>
+          <p class="tour-p hidden">Mars: Tycho's model (earth at center)</p>
+          <p class="tour-p hidden">Mars: Modern model (sun at center)</p>
+        </div>
+        <div class="tour-topic hidden">
+          <h2 class="tour-h2">End Of Tour</h2>
+          <p class="tour-p">Info button (top right) for explanations.</p>
+        </div>
+    </div></div>
     <script src="./ephemeris.js"></script>
     <script type="module" src="./main.js"></script>
 
@@ -158,6 +258,12 @@
       </symbol>
       <symbol id="fa-pause" viewBox="0 0 320 512">
         <path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z"/>
+      </symbol>
+      <symbol id="fa-circle-info" viewBox="0 0 512 512">
+        <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/>
+      </symbol>
+      <symbol id="fa-circle-xmark" viewBox="0 0 512 512">
+        <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM175 175c9.4-9.4 24.6-9.4 33.9 0l47 47 47-47c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-47 47 47 47c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-47-47-47 47c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l47-47-47-47c-9.4-9.4-9.4-24.6 0-33.9z"/>
       </symbol>
     </svg>
   </body>

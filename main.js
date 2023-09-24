@@ -229,6 +229,22 @@ function gotoStartDate() {
   render();
 }
 
+let titleOpen = true;
+const THE_TITLE = document.getElementById("thetitle");
+document.getElementById("xtitle").addEventListener("click", () => {
+  closeTitle(true);
+});
+document.getElementById("tour").addEventListener("click", takeTour);
+function closeTitle(activateDialog=false) {
+  if (!titleOpen) return;
+  titleOpen = false;
+  THE_TITLE.classList.add("hidden");
+  if (activateDialog && !dialogOpen) toggleDialog();
+}
+const THE_TOUR = document.getElementById("thetour");
+const INFO_ELEM = document.getElementById("top-info");
+INFO_ELEM.addEventListener("click", toggleInfo);
+
 const DATE_ELEM = document.getElementById("date");
 const PAUSE_ELEM = document.getElementById("pause");
 const PLAY_ELEM = document.getElementById("play");
@@ -306,8 +322,6 @@ POLAR_CHECKBOX.addEventListener("change", (e) => {
 let helioCenter = false;
 const HELIO_CHECKBOX = document.getElementById("helio");
 HELIO_CHECKBOX.addEventListener("change", (e) => {
-  // helioCenter = e.target.checked;
-  // setTrackingMode(trackingMode);
   if (helioCenter == !e.target.checked) {
     if (!helioCenter) disableLabeledInput(SWAP_CHECKBOX, true);
     helioAnimator.toggle();
@@ -333,7 +347,9 @@ function recenterEcliptic() {
 }
 
 function togglePause() {
-  if (polarAnimator.isPlaying) return;
+  if (titleOpen) closeTitle();
+  if (polarAnimator.isPlaying || helioAnimator.isPlaying ||
+      tourPlaying) return;
   if (!skyAnimator.isPaused) {
     ppToggler(PLAY_ELEM, PAUSE_ELEM);
     controls.enabled = true;
@@ -630,7 +646,7 @@ function setupSky() {
   labels.saturn = makeLabel("saturn", {}, 2, 1.25);
   labels.earth = makeLabel("earth", {}, 2, 1.25);
 
-  camera.lookAt(1, 0, 0);
+  camera.lookAt(-1, 0, 0);
   cameraTracking("sky");
   setPlanetPositions();
   scene.add(planets.sun);
@@ -931,6 +947,7 @@ class PolarViewAnimator extends Animator {
       if (unpauseSky) skyAnimator.play();
       else render();  // to have visibility changes take effect
     };
+    POLAR_CHECKBOX.checked = !this._polar;
     if (!this._polar) {
       disableRadioButtons(true);
       pointCameraForMode();
@@ -1101,6 +1118,7 @@ class OrbitCenterSwapper extends Animator {
       setTrackingMode(trackingMode);
       if (unpauseSky) skyAnimator.play();
     };
+    SWAP_CHECKBOX.checked = !centerSwap;
     this.unpauseSky = unpauseSky;
     if (unpauseSky) skyAnimator.pause();
     this.play();
@@ -1181,7 +1199,12 @@ class HelioCenterSwapper extends Animator {
       ellipses.earth.material.dashed = false;
       setTrackingMode(trackingMode);
       if (unpauseSky) skyAnimator.play();
+      if (this.tourCallback) {
+        this.tourCallback();
+        delete this.tourCallback;
+      }
     };
+    HELIO_CHECKBOX.checked = !helioCenter;
     this.unpauseSky = unpauseSky;
     if (unpauseSky) skyAnimator.pause();
     this.play();
@@ -1381,7 +1404,7 @@ class SkyControls extends THREE.EventDispatcher {
     }
 
     function onPointerDown(event) {
-      if (!self.enabled) return;
+      if (!self.enabled || tourPlaying) return;
       const domElement = self.domElement;
       if (pointers.length === 0) {
         domElement.setPointerCapture(event.pointerId)
@@ -1533,6 +1556,193 @@ function toggleFullscreen() {
     goFullscreen();
     FULLSCREEN_ICON.setAttribute("xlink:href", "#fa-compress");
   }
+}
+
+/* ------------------------------------------------------------------------ */
+
+let infoOpen = false;
+const INFO_USE = INFO_ELEM.querySelector("use");
+function toggleInfo() {
+  if (titleOpen) closeTitle();
+  if (tourPlaying) return;
+  infoOpen = !infoOpen;
+  if (infoOpen) {
+    INFO_USE.setAttribute("xlink:href", "#fa-circle-xmark");
+    if (!skyAnimator.isPaused) togglePause();
+  } else {
+    INFO_USE.setAttribute("xlink:href", "#fa-circle-info");
+  }
+}
+
+let tourPlaying = false;
+function takeTour() {
+  if (titleOpen) closeTitle();
+  if (skyAnimator.isPaused) togglePause();
+  tourPlaying = true;
+  let tourTopics = THE_TOUR.querySelectorAll(".tour-topic");
+  // tourTopics = tourTopics[Symbol.iterator](); .next() -> {value, done}
+  let topic = tourTopics[0];
+  let parts = topic.querySelectorAll(".tour-p");
+  topic.classList.remove("hidden");
+  parts[0].classList.remove("hidden");
+  THE_TOUR.classList.remove("hidden");
+  setTrackingMode("sun");
+  gotoStartDate();
+  skyAnimator.pause();
+  const partPromise = new Promise(resolve => setTimeout(resolve, 4000));
+  partPromise.then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    return waitNDays(731);
+  }).then(() => {
+    parts[0].classList.add("hidden");
+    parts[1].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    setTrackingMode("venus");
+    gotoStartDate();
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    return waitNDays(900);
+  }).then(() => {
+    parts[1].classList.add("hidden");
+    parts[2].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    setTrackingMode("mars");
+    gotoStartDate();
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    return waitNDays(1200);
+  }).then(() => {
+    parts[2].classList.add("hidden");
+    topic.classList.add("hidden");
+    topic = tourTopics[1];
+    parts = topic.querySelectorAll(".tour-p");
+    topic.classList.remove("hidden");
+    parts[0].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    setTrackingMode("venus");
+    gotoStartDate();
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    return waitNDays(584);
+  }).then(() => {
+    ["saturn", "jupiter", "mercury", "mars"].forEach(p => {
+      planets[p].visible = false; });
+    polarAnimator.toggle();
+    return waitNDays(1000);
+  }).then(() => {
+    parts[0].classList.add("hidden");
+    parts[1].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    if (!helioCenter) disableLabeledInput(SWAP_CHECKBOX, true);
+    helioAnimator.toggle();
+    return waitNDays(1000);
+  }).then(() => {
+    helioAnimator.toggle();
+    return waitNDays(10);
+  }).then(() => {
+    polarAnimator.toggle();
+    return waitNDays(10);
+  }).then(() => {
+    parts[1].classList.add("hidden");
+    parts[2].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    gotoStartDate();
+    SWAP_CHECKBOX.checked = true;
+    centerSwap = true;  // swapAnimator.toggle();
+    setTrackingMode("mars");
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    return waitNDays(780);
+  }).then(() => {
+    ["saturn", "jupiter", "mercury", "venus"].forEach(p => {
+      planets[p].visible = false; });
+    polarAnimator.toggle();
+    return waitNDays(1400);
+  }).then(() => {
+    parts[2].classList.add("hidden");
+    parts[3].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    swapAnimator.toggle();
+    return waitNDays(1400);
+  }).then(() => {
+    parts[3].classList.add("hidden");
+    parts[4].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    skyAnimator.play();
+    if (!helioCenter) disableLabeledInput(SWAP_CHECKBOX, true);
+    helioAnimator.toggle();
+    return waitNDays(1000);
+  }).then(() => {
+    helioAnimator.toggle();
+    return waitNDays(10);
+  }).then(() => {
+    polarAnimator.toggle();
+    return waitNDays(10);
+  }).then(() => {
+    parts[4].classList.add("hidden");
+    topic.classList.add("hidden");
+    topic = tourTopics[2];
+    parts = topic.querySelectorAll(".tour-p");
+    topic.classList.remove("hidden");
+    parts[0].classList.remove("hidden");
+    THE_TOUR.classList.remove("hidden");
+    skyAnimator.pause();
+    gotoStartDate();
+    SHOW_CHECKBOX.checked = false;
+    showOrbits = false;
+    setTrackingMode("sky");
+    return new Promise(resolve => setTimeout(resolve, 4000));
+  }).then(() => {
+    THE_TOUR.classList.add("hidden");
+    topic.classList.add("hidden");
+    parts[0].classList.add("hidden");
+    skyAnimator.play();
+    toggleDialog();
+    tourPlaying = false;
+  });
+}
+
+function waitNDays(djd) {
+  let jd = (jdNow===null)? jdInitial : jdNow;
+  const jdFinal = jd + djd;
+  const checker = (resolve) => {
+    jd = (jdNow===null)? jdInitial : jdNow;
+    if (jd >= jdFinal) {
+      resolve();
+      return;
+    }
+    setTimeout(() => checker(resolve), 1000);
+  };
+  return new Promise(resolve => checker(resolve));
 }
 
 /* ------------------------------------------------------------------------ */
