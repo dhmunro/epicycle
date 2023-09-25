@@ -77,6 +77,7 @@
           width: 100%;
           display: flex;
           justify-content: center;
+          pointer-events: none;
       }
       .title {
           padding: 10px 12px;
@@ -84,8 +85,9 @@
           background: #ffffffc0;
           color: black;
           border-radius: 16px;
-          border-style: solid;
+          border-style: none;
           user-select: none;
+          pointer-events: auto;
       }
       .title-break {
           flex-basis: 100%;
@@ -125,6 +127,28 @@
       .tour-p {
           text-align: center;
           font-size: 1.2em;
+      }
+      .info-container {
+          position: absolute;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          justify-content: center;
+          pointer-events: none;
+      }
+      .info {
+          padding: 10px 12px;
+          max-width: 650px;
+          width: 60%;
+          height: 100%;
+          background: #ffffffc0;
+          color: black;
+          pointer-events: auto;
+          overflow: auto;
+      }
+      .info h1 {
+          text-align: center;
       }
     </style>
     <script
@@ -232,6 +256,58 @@
           <h2 class="tour-h2">End Of Tour</h2>
           <p class="tour-p">Info button (top right) for explanations.</p>
         </div>
+    </div></div>
+    <div class="info-container hidden"><div id="theinfo" class="info">
+        <h1>Seeing the Solar System</h1>
+        <p>Here is the night sky as you can see it with your own eyes
+          under perfect conditions - say on a good night at the summit
+          of Cerro Tololo in Chile.  It consists of a couple thousand
+          stars, the Milky Way and a few nebulae (galaxies or gas
+          clouds), plus the five planets you can see by naked eye.
+          The Sun appears at its proper location, even though you can
+          never see it among the stars.  The one glaring omission is
+          the Moon, which is not shown at all because it moves through
+          the sky at least ten times faster than the Sun or planets,
+          and because untangling the details of its motion turns out
+          to be far more difficult than understanding the motion of the
+          Sun and planets - the solar system proper.</p>
+        <p><b>What are you looking at?  Can you prove it just from what
+          you see here?</b>  Those are the questions you will explore
+          here.</p>
+        <p>Except for the Sun and planets, nearly everything you see
+          in the sky looks the same as it did to the original builders
+          of Stonehenge.  Those six bodies (and the Moon) are almost
+          the only things you can see in the sky that move perceptably
+          relative to the stars.  (The occasional comet is the only
+          notable exception.)  The positions of the Sun and planets
+          you see here are computed using formulas
+          <a href="https://ssd.jpl.nasa.gov/planets/approx_pos.html">
+            from JPL</a>, which are exceedingly accurate from 5000
+          years in the past to 1000 years in the future.</p>
+        <p>Other caveats:
+          <ul>
+            <li>The planets and stars have no discernable size to your
+              naked eye - they are mere points of light as far as
+              anyone can see.  The different sizes of the spots
+              representing them here are a fiction to give you some
+              impression of their relative brightnesses.</li>
+            <li>The disk of the Sun is actually about half the size
+              shown here.</li>
+            <li>This simulation does not show the brightness changes
+              of the planets, though the changes are easy to see for
+              Venus and Mars.</li>
+            <li>You can't see anything closer than 15 or 20 degrees
+              (about the size of Orion) from the Sun.  (To accurately
+              measure the position of the Sun relative to the stars,
+              you need a good clock!)</li>
+            <li>The best possible naked eye measurements of the
+              positions of the Sun and planets are accurate to about
+              1/30 degree, about 1/15 the diameter of the Sun or Moon.
+              (Perfect human vision can barely discern two marks 1/60
+              degree apart.)</li>
+          </ul>
+        </p>
+        <h2>Under Construction</h2>
     </div></div>
     <script src="./ephemeris.js"></script>
     <script type="module" src="./main.js"></script>

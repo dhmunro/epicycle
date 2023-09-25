@@ -244,6 +244,7 @@ function closeTitle(activateDialog=false) {
 const THE_TOUR = document.getElementById("thetour");
 const INFO_ELEM = document.getElementById("top-info");
 INFO_ELEM.addEventListener("click", toggleInfo);
+const INFO_BODY = document.getElementById("theinfo");
 
 const DATE_ELEM = document.getElementById("date");
 const PAUSE_ELEM = document.getElementById("pause");
@@ -349,7 +350,7 @@ function recenterEcliptic() {
 function togglePause() {
   if (titleOpen) closeTitle();
   if (polarAnimator.isPlaying || helioAnimator.isPlaying ||
-      tourPlaying) return;
+      tourPlaying || infoOpen) return;
   if (!skyAnimator.isPaused) {
     ppToggler(PLAY_ELEM, PAUSE_ELEM);
     controls.enabled = true;
@@ -375,6 +376,7 @@ function ppToggler(elemOn, elemOff, toggler) {
 addListenerTo(PAUSE_ELEM, "click", togglePause);
 
 function toggleDialog() {
+  if (infoOpen) return;
   dialogOpen = !dialogOpen;
   if (dialogOpen) {
     diaToggler(XMARK_ELEM, CHEVRON_ELEM);
@@ -1404,7 +1406,7 @@ class SkyControls extends THREE.EventDispatcher {
     }
 
     function onPointerDown(event) {
-      if (!self.enabled || tourPlaying) return;
+      if (!self.enabled || tourPlaying || infoOpen) return;
       const domElement = self.domElement;
       if (pointers.length === 0) {
         domElement.setPointerCapture(event.pointerId)
@@ -1565,12 +1567,16 @@ const INFO_USE = INFO_ELEM.querySelector("use");
 function toggleInfo() {
   if (titleOpen) closeTitle();
   if (tourPlaying) return;
-  infoOpen = !infoOpen;
-  if (infoOpen) {
+  if (!infoOpen) {
     INFO_USE.setAttribute("xlink:href", "#fa-circle-xmark");
+    if (dialogOpen) toggleDialog();
     if (!skyAnimator.isPaused) togglePause();
+    INFO_BODY.parentElement.classList.remove("hidden");
+    infoOpen = true;
   } else {
     INFO_USE.setAttribute("xlink:href", "#fa-circle-info");
+    INFO_BODY.parentElement.classList.add("hidden");
+    infoOpen = false;
   }
 }
 
