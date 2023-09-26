@@ -920,6 +920,24 @@ class PolarViewAnimator extends Animator {
     this._polar = false;
   }
 
+  reset() {
+    if (this.isPlaying) this.stop();
+    this.rate = Math.abs(this.rate);
+    this.rCameraMax = 0;  // rCamera goes from 0 to rCameraMax (venus 5, mars 7)
+    this.rCamera = 0;  // distance of polar view from earth (AU)
+    this.axisCamera = [0, 0, 1];
+    this.latCamera = 0;
+    this.longCamera = 0;
+    this.unpauseSky = false;
+    this._polar = false;
+    ["saturn", "jupiter", "mars", "venus", "mercury"].forEach(p => {
+      planets[p].visible = true; });
+    if (trackingMode == "mars") labels.antisun.visible = true;
+    ["earth", "venus", "mars", "gearth", "gmars"].forEach(p => {
+      radii[p].visible = false;
+    });
+  }
+
   toggle() {
     const skyAnimator = this.skyAnimator;
     const mode = trackingMode;
@@ -1562,29 +1580,47 @@ function toggleFullscreen() {
 
 /* ------------------------------------------------------------------------ */
 
-let infoOpen = false;
+let infoOpen = false, infoUnseen = true;
 const INFO_USE = INFO_ELEM.querySelector("use");
 function toggleInfo() {
   if (titleOpen) closeTitle();
-  if (tourPlaying) return;
+  if (tourPlaying) {
+    INFO_USE.setAttribute("xlink:href", "#fa-circle-info");
+    if (tourReject) tourReject(new Error("tour aborted"));
+    return;
+  }
   if (!infoOpen) {
     INFO_USE.setAttribute("xlink:href", "#fa-circle-xmark");
     if (dialogOpen) toggleDialog();
     if (!skyAnimator.isPaused) togglePause();
     INFO_BODY.parentElement.classList.remove("hidden");
     infoOpen = true;
+    if (infoUnseen) {
+      INFO_BODY.scrollTo(0, 0);
+    } else {
+      // scrollSections.mars.scrollIntoView();
+    }
   } else {
     INFO_USE.setAttribute("xlink:href", "#fa-circle-info");
     INFO_BODY.parentElement.classList.add("hidden");
     infoOpen = false;
+    if (infoUnseen) {
+      infoUnseen = false;
+      if (!dialogOpen) toggleDialog();
+    }
   }
 }
+const scrollSections = {};
+INFO_BODY.querySelectorAll("a[id$='-section']").forEach(a => {
+  scrollSections[a.id.replace("-section", "")] = a;
+});
 
 let tourPlaying = false;
 function takeTour() {
   if (titleOpen) closeTitle();
   if (skyAnimator.isPaused) togglePause();
   tourPlaying = true;
+  INFO_USE.setAttribute("xlink:href", "#fa-circle-xmark");
   let tourTopics = THE_TOUR.querySelectorAll(".tour-topic");
   // tourTopics = tourTopics[Symbol.iterator](); .next() -> {value, done}
   let topic = tourTopics[0];
@@ -1595,11 +1631,11 @@ function takeTour() {
   setTrackingMode("sun");
   gotoStartDate();
   skyAnimator.pause();
-  const partPromise = new Promise(resolve => setTimeout(resolve, 4000));
+  const partPromise = WaitNSeconds();
   partPromise.then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
-    return waitNDays(731);
+    return waitNDays(400);  // mean sun
   }).then(() => {
     parts[0].classList.add("hidden");
     parts[1].classList.remove("hidden");
@@ -1607,11 +1643,11 @@ function takeTour() {
     skyAnimator.pause();
     setTrackingMode("venus");
     gotoStartDate();
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
-    return waitNDays(900);
+    return waitNDays(700);  // venus tracking
   }).then(() => {
     parts[1].classList.add("hidden");
     parts[2].classList.remove("hidden");
@@ -1619,11 +1655,11 @@ function takeTour() {
     skyAnimator.pause();
     setTrackingMode("mars");
     gotoStartDate();
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
-    return waitNDays(1200);
+    return waitNDays(900);  // mars tracking
   }).then(() => {
     parts[2].classList.add("hidden");
     topic.classList.add("hidden");
@@ -1637,34 +1673,34 @@ function takeTour() {
     showOrbits = true;
     setTrackingMode("venus");
     gotoStartDate();
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
-    return waitNDays(584);
+    return waitNDays(584);  // venus, orbit shown
   }).then(() => {
     ["saturn", "jupiter", "mercury", "mars"].forEach(p => {
       planets[p].visible = false; });
     polarAnimator.toggle();
-    return waitNDays(1000);
+    return waitNDays(800);  // venus, polar view
   }).then(() => {
     parts[0].classList.add("hidden");
     parts[1].classList.remove("hidden");
     THE_TOUR.classList.remove("hidden");
     skyAnimator.pause();
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
     if (!helioCenter) disableLabeledInput(SWAP_CHECKBOX, true);
     helioAnimator.toggle();
-    return waitNDays(1000);
+    return waitNDays(800);  // venus, heliocentric
   }).then(() => {
     helioAnimator.toggle();
-    return waitNDays(10);
+    return waitNDays(1);
   }).then(() => {
     polarAnimator.toggle();
-    return waitNDays(10);
+    return waitNDays(1);
   }).then(() => {
     parts[1].classList.add("hidden");
     parts[2].classList.remove("hidden");
@@ -1674,45 +1710,45 @@ function takeTour() {
     SWAP_CHECKBOX.checked = true;
     centerSwap = true;  // swapAnimator.toggle();
     setTrackingMode("mars");
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
-    return waitNDays(780);
+    return waitNDays(780);  // mars, epicycle orbit shown
   }).then(() => {
     ["saturn", "jupiter", "mercury", "venus"].forEach(p => {
       planets[p].visible = false; });
     polarAnimator.toggle();
-    return waitNDays(1400);
+    return waitNDays(1000);  // mars, epicycle polar view
   }).then(() => {
     parts[2].classList.add("hidden");
     parts[3].classList.remove("hidden");
     THE_TOUR.classList.remove("hidden");
     skyAnimator.pause();
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
     swapAnimator.toggle();
-    return waitNDays(1400);
+    return waitNDays(1000);  // mars, tychonic polar view
   }).then(() => {
     parts[3].classList.add("hidden");
     parts[4].classList.remove("hidden");
     THE_TOUR.classList.remove("hidden");
     skyAnimator.pause();
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
     THE_TOUR.classList.add("hidden");
     skyAnimator.play();
     if (!helioCenter) disableLabeledInput(SWAP_CHECKBOX, true);
     helioAnimator.toggle();
-    return waitNDays(1000);
+    return waitNDays(1000);  // mars, heliocentric polar view
   }).then(() => {
     helioAnimator.toggle();
-    return waitNDays(10);
+    return waitNDays(1);
   }).then(() => {
     polarAnimator.toggle();
-    return waitNDays(10);
+    return waitNDays(1);
   }).then(() => {
     parts[4].classList.add("hidden");
     topic.classList.add("hidden");
@@ -1726,17 +1762,49 @@ function takeTour() {
     SHOW_CHECKBOX.checked = false;
     showOrbits = false;
     setTrackingMode("sky");
-    return new Promise(resolve => setTimeout(resolve, 4000));
+    return WaitNSeconds();
   }).then(() => {
+    tourReject = undefined;
     THE_TOUR.classList.add("hidden");
     topic.classList.add("hidden");
     parts[0].classList.add("hidden");
     skyAnimator.play();
     toggleDialog();
     tourPlaying = false;
+    INFO_USE.setAttribute("xlink:href", "#fa-circle-info");
+  }).catch((error) => {
+    tourReject = undefined;
+    THE_TOUR.classList.add("hidden");
+    tourPlaying = false;
+    INFO_USE.setAttribute("xlink:href", "#fa-circle-info");
+    resetTracking();
+    toggleDialog();
   });
 }
 
+function resetTracking() {
+  if (helioAnimator.isPlaying) helioAnimator.stop();
+  if (swapAnimator.isPlaying) swapAnimator.stop();
+  polarAnimator.reset();
+  HELIO_CHECKBOX.checked = helioCenter = false;
+  disableLabeledInput(HELIO_CHECKBOX, true);
+  SWAP_CHECKBOX.checked = centerSwap = false;
+  disableLabeledInput(SWAP_CHECKBOX, true);
+  POLAR_CHECKBOX.checked = false;
+  disableLabeledInput(POLAR_CHECKBOX, true);
+  SHOW_CHECKBOX.checked = false;
+  showOrbits = false;
+  disableLabeledInput(SHOW_CHECKBOX, false);
+  camera.position.set(0, 0, 0);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(-1, 0, 0);
+  setTrackingMode("sky");
+  if (skyAnimator.isPaused) skyAnimator.play();
+  togglePause();
+  gotoStartDate();
+}
+
+let tourReject;
 function waitNDays(djd) {
   let jd = (jdNow===null)? jdInitial : jdNow;
   const jdFinal = jd + djd;
@@ -1748,7 +1816,17 @@ function waitNDays(djd) {
     }
     setTimeout(() => checker(resolve), 1000);
   };
-  return new Promise(resolve => checker(resolve));
+  return new Promise((resolve, reject) => {
+    tourReject = reject;
+    checker(resolve);
+  });
+}
+
+function WaitNSeconds(n=4000) {
+  return new Promise((resolve, reject) => {
+    tourReject = reject;
+    setTimeout(resolve, n);
+  });
 }
 
 /* ------------------------------------------------------------------------ */
