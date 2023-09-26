@@ -8,6 +8,7 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&display=swap');
       body {
+          box-sizing: border-box;
           margin: 0;
           overflow: hidden;
           background: black;
@@ -138,6 +139,7 @@
           pointer-events: none;
       }
       .info {
+          box-sizing: border-box;
           padding: 10px 12px;
           max-width: 650px;
           width: 60%;
@@ -261,53 +263,60 @@
         <h1>Seeing the Solar System</h1>
         <p>Here is the night sky as you can see it with your own eyes
           under perfect conditions - say on a good night at the summit
-          of Cerro Tololo in Chile.  It consists of a couple thousand
-          stars, the Milky Way and a few nebulae (galaxies or gas
-          clouds), plus the five planets you can see by naked eye.
-          The Sun appears at its proper location, even though you can
-          never see it among the stars.  The one glaring omission is
-          the Moon, which is not shown at all because it moves through
-          the sky at least ten times faster than the Sun or planets,
-          and because untangling the details of its motion turns out
-          to be far more difficult than understanding the motion of the
-          Sun and planets - the solar system proper.</p>
+          of Cerro Tololo in Chile.  Only the Moon is omitted,
+          because it moves so fast compared to everything else you can
+          see it would be just a blur, and because it plays a much
+          different role than the Sun and planets in understanding the
+          solar system.</p>
         <p><b>What are you looking at?  Can you prove it just from what
           you see here?</b>  Those are the questions you will explore
           here.</p>
-        <p>Except for the Sun and planets, nearly everything you see
-          in the sky looks the same as it did to the original builders
-          of Stonehenge.  Those six bodies (and the Moon) are almost
-          the only things you can see in the sky that move perceptably
-          relative to the stars.  (The occasional comet is the only
-          notable exception.)  The positions of the Sun and planets
-          you see here are computed using formulas
-          <a href="https://ssd.jpl.nasa.gov/planets/approx_pos.html">
-            from JPL</a>, which are exceedingly accurate from 5000
-          years in the past to 1000 years in the future.</p>
+        <p>Nearly everything you see in the sky is unchanging - it
+          looks the same now as it did to the original builders of
+          Stonehenge.  The Sun and planets (plus the Moon and, rarely,
+          a comet) are the only things you can see in the sky that
+          move perceptably relative to the stars.  How can you work
+          out the shapes and relative sizes of the orbits of the
+          planets?  Can different models describe what you see here,
+          or is there only one possible explanation?</p>
         <p>Other caveats:
           <ul>
-            <li>The planets and stars have no discernable size to your
-              naked eye - they are mere points of light as far as
-              anyone can see.  The different sizes of the spots
-              representing them here are a fiction to give you some
-              impression of their relative brightnesses.</li>
+            <li>The solid blue line is the ecliptic plane; the dashed
+              blue line is the equatorial plane.  Solid and dashed
+              crosses are the corresponding poles.</li>
+            <li>Unlike the dots that represent them here, the planets
+              and stars have no discernable size to your naked eye -
+              they are mere points of light as far as anyone can
+              see.</li>
             <li>The disk of the Sun is actually about half the size
               shown here.</li>
-            <li>This simulation does not show the brightness changes
-              of the planets, though the changes are easy to see for
-              Venus and Mars.</li>
+            <li>Changes in brightness of the planets are not depicted.</li>
             <li>You can't see anything closer than 15 or 20 degrees
-              (about the size of Orion) from the Sun.  (To accurately
-              measure the position of the Sun relative to the stars,
-              you need a good clock!)</li>
-            <li>The best possible naked eye measurements of the
-              positions of the Sun and planets are accurate to about
-              1/30 degree, about 1/15 the diameter of the Sun or Moon.
-              (Perfect human vision can barely discern two marks 1/60
-              degree apart.)</li>
+              (about the size of Orion) from the Sun - in other words
+              within about an hour of sunset or sunrise.</li>
           </ul>
         </p>
-        <h2>Under Construction</h2>
+        <p>Here you can explore planetary motion with each passing
+          year compressed into a bit less than ten seconds.  You can
+          close this exposition using the x button at the upper right,
+          then use the dialog box under the &gt; button under the date
+          at the left to study various things.  You can also click on
+          a section heading here to set the switches in the dialog box
+          to show the subject of that section.  Conversely, when you
+          click the i button at the upper right, this window will open
+          scrolled to the corresponding section.</p>
+        <h2><a id="sky-section" onclick="setDialogTo('sky')">
+            How the Sun and Planets Move</a></h2>
+        <p>Blah blah.</p>
+        <h2><a id="sun-section" onclick="setDialogTo('sun')">
+            Sun's Motion Not Quite Uniform</a></h2>
+        <p>Blah blah.</p>
+        <h2><a id="venus-section" onclick="setDialogTo('venus')">
+            How Venus Moves</a></h2>
+        <p>Blah blah.</p>
+        <h2><a id="mars-section" onclick="setDialogTo('mars')">
+            How Mars Moves</a></h2>
+        <p>Blah blah.</p>
     </div></div>
     <script src="./ephemeris.js"></script>
     <script type="module" src="./main.js"></script>
