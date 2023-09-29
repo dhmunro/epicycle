@@ -7,6 +7,9 @@
     <title>Seeing the Solar System</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+      :root {
+          accent-color: #67f;
+      }
       body {
           box-sizing: border-box;
           margin: 0;
@@ -150,7 +153,7 @@
           pointer-events: auto;
           overflow: auto;
       }
-      .info h1 {
+      .info h1,h2 {
           text-align: center;
       }
     </style>
@@ -252,7 +255,8 @@
           <p class="tour-p">Venus: Ancient model (earth at center)</p>
           <p class="tour-p hidden">Venus: Modern model (sun at center)</p>
           <p class="tour-p hidden">Mars: Ancient model (earth at center)</p>
-          <p class="tour-p hidden">Mars: Tycho's model (earth at center)</p>
+          <p class="tour-p hidden">
+            Mars: Tycho's model (swaps orbit centers)</p>
           <p class="tour-p hidden">Mars: Modern model (sun at center)</p>
         </div>
         <div class="tour-topic hidden">
@@ -308,18 +312,275 @@
           button at the upper right (where the x is now), this window
           will open scrolled to the section corresponding to the
           dialog switches.</p>
-        <h2><a id="sky-section" onclick="setDialogTo('sky')">
+        <h2><a id="sky-section" href="#sky-section"
+               onclick="setDialogTo('sky')">
             How the Sun and Planets Move</a></h2>
-        <p>Blah blah.</p>
-        <h2><a id="sun-section" onclick="setDialogTo('sun')">
+        <p>The Sun and planets move through the constellations of the
+          Zodiac.  The Sun moves exactly around a great circle in the
+          sky called the ecliptic, which is the horizontal blue line.
+          The planets execute a much more complicated motion, always
+          remaining near the ecliptic.  The planets usually move
+          around the Zodiac in the same west-to-east direction as the
+          Sun, but occasionally reverse and move "retrograde" through
+          the Zodiac from east to west.  (Note that when you look up
+          at the sky instead of down at a map, east is to your left
+          and west is to your right, when north is up!)</p>
+        <p>You will want to "drag the sky" with your mouse to look
+          around - otherwise you may need to wait a long time for
+          slow-moving Jupiter and Saturn to come into view.  It's also
+          fun to lok for your favorite constellations.  Orion and the
+          Big Dipper are easy to find.  Cassiopeia and the Southern
+          Cross are harder because they lie very near the dense star
+          fields of the Milky Way.</p>
+        <p>Notice that the planets naturally divide in two groups:
+          Mercury and Venus always stay near the Sun, while Mars,
+          Jupiter, and Saturn can appear anywhere on the ecliptic
+          relative to the Sun.  Arranged by their greatest speed
+          relative to the stars, from fastest to slowest the order is
+          Mercury, Venus, the Sun, Mars, Jupiter, and Saturn.  In what
+          follows, we will consider only the Sun (obviously a special
+          simpler case), Venus as a representative of the faster
+          planets, and Mars as a representative of the slower
+          planets.</p>
+        <h2><a id="sun-section" href="#sun-section"
+               onclick="setDialogTo('sun')">
             Sun's Motion Not Quite Uniform</a></h2>
-        <p>Blah blah.</p>
-        <h2><a id="venus-section" onclick="setDialogTo('venus')">
+        <p>While the motion of the Sun is far simpler than the
+          planets, it is not as simple as it could be.  Although
+          confined exactly to the ecliptic, the Sun speeds up and
+          slows down slightly over the course of the year.  If you
+          count the days from the March equinox to the December
+          equinox you find there are 186, but from the December
+          equinox back to the March equinox takes only 179 days - even
+          though the equinoxes are exactly 180 degrees apart on the
+          ecliptic.</p>
+        <p>The only way you can see this tiny effect is to compare the
+          actual position of the Sun to a point on the ecliptic called
+          the "mean Sun" - an imaginary direction which moves around
+          the ecliptic at an exactly uniform rate.  The mean Sun is at
+          the same point as the actual Sun at perihelion, when Earth
+          is closest to the Sun in early January, and at aphelion,
+          when Earth is farthest from the Sun in early July.  We
+          understand that the Earth moves around the Sun faster near
+          perihelion, and slower near aphelion, but the concept of the
+          mean Sun has been around since ancient times - long before
+          its explanation in terms of the Earth's orbit was known.</p>
+        <p>Note that the blue ecliptic and celestial equator lines
+          were also well-known in ancient times.  Hence the equinoxes
+          and the slight non-uniformity in the Sun's motion around the
+          ecliptic were also known, probably since prehistoric times.</p>
+        <p>Notice the Sun reaches its maximum westward position
+          relative to the mean Sun just before reaching the brightest
+          part of the Milky way, and its maximum eastward position
+          just before passing over Orion, year after year.  Although
+          the speed of the Sun varies, the pattern of those variations
+          repeats exactly every year.</p>
+        <h2><a id="venus-section" href="#venus-section"
+               onclick="setDialogTo('venus')">
             How Venus Moves</a></h2>
-        <p>Blah blah.</p>
-        <h2><a id="mars-section" onclick="setDialogTo('mars')">
+        <p>Venus oscillates back and forth from about 48 degrees west
+          of the Sun to 48 degrees east of the Sun, completing one
+          cycle roughly every 584 days.  Unlike the motion of the Sun
+          around the ecliptic, these cycles never repeat exactly -
+          both the period and the path vary without any obvious
+          pattern from one cycle to the next.  When west of the Sun,
+          Venus is the morning star, when east of the Sun it is the
+          evening star.  Its oscillations are not at all symmetrical:
+          Venus slowly overtakes the Sun during its prograde motion
+          passing from the morning to the evening side of the Sun,
+          then quickly snaps back retrograde from the evening to the
+          morning side.</p>
+        <p>Ancient Egyptian and Babylonian astronomers pointed out
+          that this motion looks very much as if Venus is moving
+          around the Sun in the same direction as the Sun is moving
+          around the ecliptic.  Our nearly edge-on view of this
+          roughly circular motion makes Venus appear to oscillate from
+          one side of the Sun to the other in this asymmetric way.
+          This observation is undoubtedly the origin of the epicycle
+          model of planetary motion worked out in detail by ancient
+          Greek astronomers which held sway for nearly two millenia
+          until Copernicus.</p>
+        <h2><a id="mars-section" href="#mars-section"
+               onclick="setDialogTo('mars')">
             How Mars Moves</a></h2>
-        <p>Blah blah.</p>
+        <p>The motion of Mars is much harder to describe than the
+          motion of Venus.  The connection to the Sun is much subtler:
+          Mars is always in the middle of its retrograde motion when
+          it is exactly opposite the Sun.  The anti-sun direction on
+          the ecliptic is marked to help you notice this regularity.
+          By turning to keep the Sun at the center of the view, you
+          could watch Venus oscillate back and forth.  If you want to
+          watch Mars in a similar way, you need to turn to keep an
+          imaginary direction in space, labeled "sun-mars" for reasons
+          to be described later, at the center of your view: Mars
+          oscillates back and forth around this sun-mars direction in
+          much the way Venus oscillates around the Sun direction.</p>
+        <p>Once again, Mars slowly overtakes the sun-mars direction
+          during the prograde part of its motion, then more quickly
+          returns to the west side of the sun-mars direction in its
+          retrograde part.  The sun-mars direction is constructed to
+          align with Mars itself in the middle of its prograde part
+          exactly when the Sun overtakes it (called conjunction), and
+          again in the middle of its retrograde part exactly when it
+          crosses the anti-sun direction (called opposition).  Be sure
+          to watch for these moments when the Sun and anti-sun pass
+          Mars.  One whole cycle takes 780 days on average, but is
+          considerably more irregular than the 584 day Venus
+          cycle.</p>
+        <p>Although not depicted here, Mars is dramatically brighter
+          near opposition than during the prograde part of its motion,
+          a strong hint that it is much closer to us then.</p>
+        <p>Oppositions are extremely important times to make careful
+          observations of Mars (and Jupiter and Saturn), because they
+          can be measured very accurately.  Conjuctions, when a planet
+          passes either directly behind or (in the case of Venus and
+          Mercury) directly in front of the Sun, would be just as
+          important for understanding the motion, but can never be
+          measured very accurately.  Since you can never see anything
+          in the sky anywhere near the Sun, you can only estimate the
+          exact time of a conjunction.  (Unless you have an
+          essentially perfect theory of planetary motion!)</p>
+        <h2><a id="model-section" href="#model-section"
+               onclick="setDialogTo('model')">
+            How to Model Planetary Motion</a></h2>
+        <p>Most popular discussions of the history of solar system
+          models concentrate on the shift from geocentric
+          (Earth-centered) models to heliocentric (Sun-centered)
+          models.  But the real breakthrough was made by Kepler in
+          1609, and does not have much to do with whether you think
+          the Sun or the Earth is at the center of the solar system.
+          After all, the heliocentrism dates at least back to
+          Aristarchus in the century before Hipparchus.  Hipparchus,
+          the greatest astronomer of antiquity, carefully studied the
+          idea, and judged that the mathematically equivalent
+          geocentric model provided a simpler description of planetary
+          motion.</p>
+        <p>In fact, there is no way to define or establish which body,
+          if any, in the solar system is at rest, no matter how
+          carefully you measure the positions of planets.  The sense
+          in which the Sun is the center of the solar system is a
+          theoretical prediction of Newtonian mechanics (published in
+          1687), which could not be observationally confirmed until
+          centuries later (from stellar parallax).</p>
+        <p>Ultimately, all orbits are simply imaginary lines - there
+          are no railroad tracks in space.  The heliocentric orbits we
+          all learn to draw in school are not the only reasonable
+          choice for how to think about what you see in the sky.  In
+          many ways, the older geocentric picture provides a more
+          immediate description of how the planets move, so it's worth
+          explaining the relationship between the model we learned and
+          the ancient models.  If you want to master any subject, you
+          need to be able to see it from as many perspectives as
+          possible.</p>
+        <p>Incidentally, what Kepler really did - one of the greatest
+          scientific advances of all time - was figure out how to
+          survey the shapes of the orbits of Mars and of Earth (or the
+          Sun).  For millenia even the greatest astronomers had merely
+          guessed shapes and compared their guesses to observations.
+          Kepler was the first to actually measure the shapes of the
+          orbits.  Before we get to that, let's take a look at the
+          various different ways people have imagined planetary
+          orbits.</p>
+        <h3><a id="venus1-section" href="#venus1-section"
+               onclick="setDialogTo('venus1')">
+            Venus's orbit viewed from Earth</a></h3>
+        <p>Since Venus appears to oscillate from the morning to the
+          evening side of the Sun, ancient astronomers in Egypt and
+          Babylon imagined that we had a nearly edge on view of an
+          orbit around the Sun.  The asymmetry in the prograde and
+          retrograde parts of this loop hints that Venus passes
+          between the Earth and Sun on the retrograde part, and behind
+          the Sun on the prograde part, moving arond the Sun in the
+          same west-to-east direction as the Sun moves around the
+          Zodiac.</p>
+        <p>When we draw our view from Earth of Venus's orbit around
+          the Sun, notice that its projection on the sky changes shape
+          during the course of the year.  In fact, the orbit remains
+          in a fixed orientation relative to the stars, which is
+          slightly tilted from the ecliptic.  The apparent changes in
+          shape exactly repeat every year as the Earth returns to the
+          same vantage point.  For example, early in December when the
+          Sun passes the brightest knot of the Milky Way, the Earth
+          crosses the plane of Venus's orbit, and the orbit appears to
+          collapse into a line.  This crossing happens at the same
+          time every year, so you can see that Venus's orbit is fixed
+          relative to the stars.  (This isn't quite true.  If you go
+          to a date several thousand years in the past, you will
+          notice that Venus's orbit - and Earth's orbit too - do
+          change very slowly.)</p>
+        <h3><a id="venus2-section" href="#venus2-section"
+               onclick="setDialogTo('venus2')">
+            Venus's orbit viewed from deep space</a></h3>
+        <p>Orbits are imaginary paths the planets follow, and you need
+          to imagine them as three dimensional curves, not just their
+          projections onto the sky.  The best vantage point is far
+          above the plane of the ecliptic, where you can see they are
+          very nearly circles.  From this vantage point, a second
+          orbit becomes visible - the path the Sun follows around the
+          Earth.  Yes, we all learn that the Earth "really" goes
+          around the Sun, but there isn't any geometrical reason we
+          can't draw that orbit with the Earth at the center: Each
+          point on the Sun's orbit lies in the direction we observe
+          the Sun, at the distance of the Sun.</p>
+        <p>When you draw this orbit of the Sun around Earth, it
+          doesn't change the fact that Venus orbits the Sun.  Hence
+          you very naturally arrive at a picture in which the center
+          of Venus's orbit orbits around the Earth.  The ancient
+          Greeks called what we call Venus's "orbit" its "epicycle".
+          The center of the epicycle follows a path they called the
+          "deferent", but which we've described as the "Sun's
+          orbit".<p>
+        </p>The picture you are looking at here is, qualitatively at
+          least, the picture Hipparchus and the other great
+          astronomers of ancient Greece used to think about how Venus
+          moves.  It is the picture in the Almagest, which was the
+          starting point for the great Islamic astronomers of the
+          middle ages as well.</p>
+        <h3><a id="venus3-section" href="#venus3-section"
+               onclick="setDialogTo('venus3')">
+            Venus's heliocentric orbit</a></h3>
+        <p>Here are the orbits of Venus and Earth the way we were all
+          taught in school.  On the plus side, we draw the two orbits
+          with only a single center - the Sun.  On the minus side, when
+          we picture the Earth moving around the Sun, it's much harder
+          to visualize how the Earth-Venus line is changing - but that
+          direction is where we actually see Venus in the sky!  From
+          our point of view on Earth, Venus oscillates from one side
+          of the Sun to the other as the Sun moves around the Zodiac
+          - which is exactly what the epicycle picture of the two
+          orbits shows.  It's not hard to understand why the ancient
+          astronomers might prefer this more direct description of
+          what we actually see to the modest simplification of a
+          single center.</p>
+        <p>You should check and uncheck the "sun center" box several
+          times to be sure you understand the relationship between
+          the heliocentric and geocentric pictures of the motion of
+          Venus.  The relative positions of the three objects - Venus,
+          Earth, and Sun - are exactly the same in both models.  The
+          orbit of Venus is exactly the same.  The orbit of the Sun
+          in the geocentric picture is exactly the same shape as the
+          orbit of Earth in the heliocentric picture, but rotated
+          180 degrees to swap the centers.</p>
+        <h3><a id="mars1-section" href="#mars1-section"
+               onclick="setDialogTo('mars1')">
+            Mars's orbit viewed from Earth</a></h3>
+        <p>Blah blah.
+        </p>
+        <h3><a id="mars2-section" href="#mars2-section"
+               onclick="setDialogTo('mars2')">
+            Mars's orbit viewed from deep space</a></h3>
+        <p>Blah blah.
+        </p>
+        <h3><a id="mars3-section" href="#mars3-section"
+               onclick="setDialogTo('mars3')">
+            Swapping centers of Mars and Sun orbits</a></h3>
+        <p>Blah blah.
+        </p>
+        <h3><a id="mars4-section" href="#mars4-section"
+               onclick="setDialogTo('mars4')">
+            Mars's heliocentric orbit</a></h3>
+        <p>Blah blah.
+        </p>
     </div></div>
     <script src="./ephemeris.js"></script>
     <script type="module" src="./main.js"></script>

@@ -1,4 +1,8 @@
-import * as THREE from 'three';
+// import * as THREE from 'three';
+import {Scene, PerspectiveCamera, WebGLRenderer, Vector3, EllipseCurve,
+        Matrix4, DefaultLoadingManager, Sprite, SpriteMaterial, TextureLoader,
+        CubeTextureLoader, CanvasTexture, EventDispatcher, Quaternion
+       } from 'three';
 import WebGL from 'three/addons/capabilities/WebGL.js';
 import {Line2} from 'three/addons/lines/Line2.js';
 import {LineMaterial} from 'three/addons/lines/LineMaterial.js';
@@ -47,9 +51,9 @@ function setFOVParams(width, height) {
 }
 setFOVParams(window.innerWidth, window.innerHeight);
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(VFOV, ASPECT, 0.1, 2000);
-const renderer = new THREE.WebGLRenderer(
+const scene = new Scene();
+const camera = new PerspectiveCamera(VFOV, ASPECT, 0.1, 2000);
+const renderer = new WebGLRenderer(
   {canvas: document.getElementById("container"), antialias: true, alpha: true});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setClearColor( 0x000000, 0.0 );
@@ -175,8 +179,14 @@ const radioButtons = [];
 
 function disableRadioButtons(state=true) {
   radioButtons.forEach(b => {
-    if (b.checked) return;
-    disableLabeledInput(b, state);
+    if (b.checked) disableLabeledInput(b, false);
+    else disableLabeledInput(b, state);
+  });
+}
+
+function checkRadioButton(iButton) {
+  radioButtons.forEach((b, i) => {
+    b.checked = (i == iButton);
   });
 }
 
@@ -333,7 +343,7 @@ function overlayDate() {
   DATE_ELEM.innerHTML = date4jd((jdNow===null)? jdInitial : jdNow);
 }
 
-const _dummyVector = new THREE.Vector3();
+const _dummyVector = new Vector3();
 
 function recenterEcliptic() {
   camera.up.set(0, 1, 0);
@@ -457,13 +467,13 @@ function setPlanetPositions() {
 }
 
 const CIRCLE_N = 180;  // actually 181 points
-const circlePoints = new THREE.EllipseCurve().getPoints(CIRCLE_N).map(
+const circlePoints = new EllipseCurve().getPoints(CIRCLE_N).map(
   p => [p.y, 0, p.x]);
 
 const fatLineMaterials = [];
 
 const ellipses = (() => {
-  const shapes = { matrix: new THREE.Matrix4(), vector: new THREE.Vector3() };
+  const shapes = { matrix: new Matrix4(), vector: new Vector3() };
   [["sun", 0xccccff], ["venus", 0xcccccc],
    ["earth", 0xccccff], ["mars", 0xffcccc]].forEach(([p, c]) => {
      let geom = new LineGeometry();
@@ -558,7 +568,7 @@ function setupSky() {
 
   // scene.add(camera);
 
-  THREE.DefaultLoadingManager.onLoad = () => {
+  DefaultLoadingManager.onLoad = () => {
     camera.position.set(0, 0, 0);
     camera.up.set(0, 1, 0);
     camera.scale.set(1, 1, 1);
@@ -566,7 +576,7 @@ function setupSky() {
     skyAnimator.play();
   }
 
-  scene.background = new THREE.CubeTextureLoader()
+  scene.background = new CubeTextureLoader()
     .setPath("images/")
     .load(textureMaps);
   scene.backgroundIntensity = 0.6;  // 0.3-0.4 fades to less distracting level
@@ -576,7 +586,7 @@ function setupSky() {
   setFatLineResolutions();
   let geom = new LineGeometry();
   geom.setPositions(
-    new THREE.EllipseCurve(0, 0, 1000, 1000).getPoints(24).map(
+    new EllipseCurve(0, 0, 1000, 1000).getPoints(24).map(
       p => [p.x, p.y, 0]).flat());
   const ecliptic = new Line2(geom, solidLine);
   ecliptic.rotation.x = Math.PI / 2;
@@ -596,43 +606,43 @@ function setupSky() {
   qpoleMarks.rotation.z = -23.43928 * Math.PI/180.;
   scene.add(qpoleMarks);
 
-  planets.sun = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: new THREE.TextureLoader().load("images/sun-alpha.png"),
+  planets.sun = new Sprite(
+    new SpriteMaterial({
+      map: new TextureLoader().load("images/sun-alpha.png"),
       color: 0xffffff, sizeAttenuation: false}));
   textureSpriteSetScale(planets.sun, 0.6);  // correct scale is about 0.03
 
-  const planetTexture = new THREE.TextureLoader().load(
+  const planetTexture = new TextureLoader().load(
     "images/planet-alpha.png");
-  planets.venus = new THREE.Sprite(
-    new THREE.SpriteMaterial({
+  planets.venus = new Sprite(
+    new SpriteMaterial({
       map: planetTexture,
       color: 0xffffff, sizeAttenuation: false}));
   textureSpriteSetScale(planets.venus, 0.6);
-  planets.mars = new THREE.Sprite(
-    new THREE.SpriteMaterial({
+  planets.mars = new Sprite(
+    new SpriteMaterial({
       map: planetTexture,
       color: 0xffcccc, sizeAttenuation: false}));
   textureSpriteSetScale(planets.mars, 0.6);
 
-  planets.jupiter = new THREE.Sprite(
-    new THREE.SpriteMaterial({
+  planets.jupiter = new Sprite(
+    new SpriteMaterial({
       map: planetTexture,
       color: 0xffffff, sizeAttenuation: false}));
   textureSpriteSetScale(planets.jupiter, 0.6);
-  planets.saturn = new THREE.Sprite(
-    new THREE.SpriteMaterial({
+  planets.saturn = new Sprite(
+    new SpriteMaterial({
       map: planetTexture,
       color: 0xffffcc, sizeAttenuation: false}));
   textureSpriteSetScale(planets.saturn, 0.6);
-  planets.mercury = new THREE.Sprite(
-    new THREE.SpriteMaterial({
+  planets.mercury = new Sprite(
+    new SpriteMaterial({
       map: planetTexture,
       color: 0xffffff, sizeAttenuation: false}));
   textureSpriteSetScale(planets.mercury, 0.4);
 
-  planets.earth = new THREE.Sprite(
-    new THREE.SpriteMaterial({
+  planets.earth = new Sprite(
+    new SpriteMaterial({
       map: planetTexture,
       color: 0xccccff, sizeAttenuation: false}));
   textureSpriteSetScale(planets.earth, 0.6);
@@ -745,9 +755,9 @@ function makeLabel(text, params, tick=0, gap=-0.5) {
     ctx.stroke();
   }
 
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial(
-      { map: new THREE.CanvasTexture(canvas), sizeAttenuation: false }));
+  const sprite = new Sprite(
+    new SpriteMaterial(
+      { map: new CanvasTexture(canvas), sizeAttenuation: false }));
   if (tick) {
     sprite.center.set(0.5, 1. - (tick+0.5*gap)/canvas.height);
   }
@@ -775,28 +785,32 @@ window.addEventListener("resize", () => {
   camera.aspect = ASPECT;
   let fov, spriteScale;
   if (polarAnimator.isPolar) {
-    fov = polarAnimator.polarFOV;
-    spriteScale = 2 * Math.tan(fov * Math.PI/360.) / HEIGHT;
+    changeCameraFOV(polarAnimator.polarFOV);
   } else {
-    fov = VFOV;
-    spriteScale = SPRITE_SCALE;
+    changeCameraFOV(VFOV, SPRITE_SCALE);
   }
-  camera.fov = fov;
-  camera.updateProjectionMatrix();
   renderer.setSize(WIDTH, HEIGHT);
   setFatLineResolutions();
+  render();
+}, false);
+
+function changeCameraFOV(fov, spriteScale) {
+  if (spriteScale === undefined) {
+    spriteScale = 2 * Math.tan(fov * Math.PI/360.) / HEIGHT;
+  }
   for (let name in labels) {
     const sprite = labels[name];
-    const width=sprite.userData.width, height=sprite.userData.height;
+    const width = sprite.userData.width, height = sprite.userData.height;
     sprite.scale.set(width*spriteScale, height*spriteScale, 1);
   }
   for (let name in planets) {
     const sprite = planets[name];
-    const width=sprite.userData.width, height=sprite.userData.height;
+    const width = sprite.userData.width, height = sprite.userData.height;
     sprite.scale.set(width*spriteScale, height*spriteScale, 1);
   }
-  render();
-}, false);
+  camera.fov = fov
+  camera.updateProjectionMatrix();
+}
 
 /* ------------------------------------------------------------------------ */
 
@@ -1016,22 +1030,9 @@ class PolarViewAnimator extends Animator {
     }
     this.rCamera = r;
     const frac = r / rMax;
-    const fov = VFOV*(1-frac) + this.polarFOV*frac;
-    const spriteScale = 2 * Math.tan(fov * Math.PI/360.) / HEIGHT;
-    for (let name in labels) {
-      const sprite = labels[name];
-      const width = sprite.userData.width, height = sprite.userData.height;
-      sprite.scale.set(width*spriteScale, height*spriteScale, 1);
-    }
-    for (let name in planets) {
-      const sprite = planets[name];
-      const width = sprite.userData.width, height = sprite.userData.height;
-      sprite.scale.set(width*spriteScale, height*spriteScale, 1);
-    }
+    changeCameraFOV(VFOV*(1-frac) + this.polarFOV*frac);
     const axis = this.axisCamera;
     camera.position.set(r*axis[0], 0, r*axis[2]);
-    camera.fov = fov
-    camera.updateProjectionMatrix();
     render();
     return done;
   }
@@ -1104,7 +1105,7 @@ class PolarViewAnimator extends Animator {
   }
 
   static rCameraMaxs = {venus: 5, mars: 7};
-  static vec = new THREE.Vector3();
+  static vec = new Vector3();
 }
 
 const skyAnimator = new Animator(dms => {
@@ -1234,21 +1235,17 @@ class HelioCenterSwapper extends Animator {
     if (dms == 0) {
       this.rate = 0.001 * Math.PI / this.swapTime;
       this.ang = Math.PI;
-      if (helioCenter) {
-        this.active = ellipses.sun;
-        this.passive = ellipses.earth;
-        this.pos0 = planets.sun.position;
-        this.pos1 = planets.earth.position;
-      } else {
-        this.active = ellipses.earth;
-        this.passive = ellipses.sun;
-        this.pos0 = planets.earth.position;
-        this.pos1 = planets.sun.position;
-      }
+      let active, passive;
+      if (helioCenter) [active, passive] = ["sun", "earth"];
+      else [active, passive] = ["earth", "sun"];
+      this.active = ellipses[active];
+      this.passive = ellipses[passive];
+      let pos0 = planets[active].position;
+      let pos1 = planets[passive].position;
       this.active.visible = true;
       this.passive.material.dashed = true;
-      this.pos0 = [this.pos0.x, this.pos0.y, this.pos0.z];
-      this.pos1 = [this.pos1.x, this.pos1.y, this.pos1.z];
+      this.pos0 = [pos0.x, pos0.y, pos0.z];
+      this.pos1 = [pos1.x, pos1.y, pos1.z];
       return false;
     }
     const yaxis = HelioCenterSwapper.yaxis;
@@ -1301,7 +1298,7 @@ class HelioCenterSwapper extends Animator {
     return done;
   }
 
-  static yaxis = new THREE.Vector3(0, 1, 0);
+  static yaxis = new Vector3(0, 1, 0);
 }
 
 const helioAnimator = new HelioCenterSwapper();
@@ -1314,7 +1311,7 @@ const _changeEvent = { type: 'change' };
 const _startEvent = { type: 'start' };
 const _endEvent = { type: 'end' };
 
-class SkyControls extends THREE.EventDispatcher {
+class SkyControls extends EventDispatcher {
   constructor(camera, domElement) {
     super();
 
@@ -1329,16 +1326,16 @@ class SkyControls extends THREE.EventDispatcher {
     let dragStrategy = true;
     const pointers = [];
     // Allocate working objects just once here.
-    const u = new THREE.Vector3();
-    const p = new THREE.Vector3();
-    const q = new THREE.Vector3();
-    const u0 = new THREE.Vector3();
-    const q0 = new THREE.Vector3();
-    const pxq = new THREE.Vector3();
-    const pp = new THREE.Vector3();
-    const tmp = new THREE.Vector3();
-    const quat = new THREE.Quaternion();
-    const qtmp = new THREE.Quaternion();
+    const u = new Vector3();
+    const p = new Vector3();
+    const q = new Vector3();
+    const u0 = new Vector3();
+    const q0 = new Vector3();
+    const pxq = new Vector3();
+    const pp = new Vector3();
+    const tmp = new Vector3();
+    const quat = new Quaternion();
+    const qtmp = new Quaternion();
 
     this.dispose = function() {
       const domElement = self.domElement;
@@ -1598,7 +1595,7 @@ function toggleInfo() {
     if (infoUnseen) {
       INFO_BODY.scrollTo(0, 0);
     } else {
-      // scrollSections.mars.scrollIntoView();
+      scrollToDialogState();
     }
   } else {
     INFO_USE.setAttribute("xlink:href", "#fa-circle-info");
@@ -1783,6 +1780,7 @@ function takeTour() {
 }
 
 function resetTracking() {
+  if (infoOpen) toggleInfo();
   if (helioAnimator.isPlaying) helioAnimator.stop();
   if (swapAnimator.isPlaying) swapAnimator.stop();
   polarAnimator.reset();
@@ -1798,6 +1796,7 @@ function resetTracking() {
   camera.position.set(0, 0, 0);
   camera.up.set(0, 1, 0);
   camera.lookAt(-1, 0, 0);
+  checkRadioButton(0);
   setTrackingMode("sky");
   if (skyAnimator.isPaused) skyAnimator.play();
   togglePause();
@@ -1807,7 +1806,7 @@ function resetTracking() {
 let tourReject;
 function waitNDays(djd) {
   let jd = (jdNow===null)? jdInitial : jdNow;
-  const jdFinal = jd + djd;
+  const jdFinal = jd + djd/tourSpeedup;
   const checker = (resolve) => {
     jd = (jdNow===null)? jdInitial : jdNow;
     if (jd >= jdFinal) {
@@ -1825,8 +1824,140 @@ function waitNDays(djd) {
 function WaitNSeconds(n=4000) {
   return new Promise((resolve, reject) => {
     tourReject = reject;
-    setTimeout(resolve, n);
+    setTimeout(resolve, n/tourSpeedup);
   });
+}
+
+let tourSpeedup = 1;
+
+function scrollToDialogState() {
+  // trackingMode, showOrbits, centerSwap, helioCenter, polarAnimator.isPolar;
+  if (!showOrbits) {
+    scrollSections[trackingMode].scrollIntoView();
+  } else if (!polarAnimator.isPolar) {
+    if (trackingMode == "mars") {
+      scrollSections.mars1.scrollIntoView();
+    } else if (trackingMode == "venus") {
+      scrollSections.venus1.scrollIntoView();
+    } else {
+      scrollSections.model.scrollIntoView();
+    }
+  } else if (trackingMode == "mars") {
+    if (helioCenter) scrollSections.mars4.scrollIntoView();
+    else if (centerSwap) scrollSections.mars3.scrollIntoView();
+    else scrollSections.mars2.scrollIntoView();
+  } else if (trackingMode == "venus") {
+    if (helioCenter) scrollSections.venus3.scrollIntoView();
+    else scrollSections.venus2.scrollIntoView();
+  } else {
+    // should never get here
+    INFO_BODY.scrollTo(0, 0);
+  }
+}
+
+function setDialogTo(section) {
+  resetTracking();  // toggles info, which toggles dialog
+  if (section == "sky") {
+    // resetTracking already did this
+  } else if (section == "sun") {
+    checkRadioButton(1);
+    setTrackingMode("sun");
+  } else if (section == "venus") {
+    checkRadioButton(2);
+    setTrackingMode("venus");
+  } else if (section == "mars") {
+    checkRadioButton(3);
+    setTrackingMode("mars");
+  } else if (section == "model") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    checkRadioButton(0);
+    setTrackingMode("sky");
+  } else if (section == "venus1") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    checkRadioButton(2);
+    setTrackingMode("venus");
+    if (skyAnimator.isPaused) skyAnimator.play();
+  } else if (section == "venus2") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    checkRadioButton(2);
+    setTrackingMode("venus");
+    jumpToPolar("venus");
+  } else if (section == "venus3") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    checkRadioButton(2);
+    setTrackingMode("venus");
+    HELIO_CHECKBOX.checked = true;
+    helioCenter = true;
+    jumpToPolar("venus");
+  } else if (section == "mars1") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    SWAP_CHECKBOX.checked = true;
+    centerSwap = true;
+    checkRadioButton(3);
+    setTrackingMode("mars");
+    if (skyAnimator.isPaused) skyAnimator.play();
+  } else if (section == "mars2") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    SWAP_CHECKBOX.checked = true;
+    centerSwap = true;
+    checkRadioButton(3);
+    setTrackingMode("mars");
+    jumpToPolar("mars");
+  }
+}
+
+window.setDialogTo = setDialogTo;  // expose so accessible as onClick
+
+function jumpToPolar(planet) {
+  const r = PolarViewAnimator.rCameraMaxs[planet];
+  const label = (planet == "venus")? labels.sun : labels.sunmars;
+  polarAnimator.rCameraMax = r
+  polarAnimator.label = label;
+  polarAnimator.rate = -Math.abs(polarAnimator.rate);
+  polarAnimator.unpauseSky = false;
+  polarAnimator._polar = true;
+  polarAnimator.rCamera = r;
+  polarAnimator.latCamera = Math.PI/2;
+  disableLabeledInput(SHOW_CHECKBOX, true);
+  POLAR_CHECKBOX.checked = true;
+  disableLabeledInput(POLAR_CHECKBOX, helioCenter);
+  if (planet == "venus") {
+    disableLabeledInput(HELIO_CHECKBOX, false);
+  } else {
+    disableLabeledInput(HELIO_CHECKBOX, !centerSwap);
+  }
+  ["saturn", "jupiter", "mercury"].forEach(p => {
+    planets[p].visible = false; });
+  if (planet == "mars") {
+    planets.venus.visible = false;
+    labels.antisun.visible = false;
+    ["earth", "mars", "gearth", "gmars"].forEach(p => {
+      radii[p].visible = true;
+    });
+  } else {
+    planets.mars.visible = false;
+    ["earth", "venus"].forEach(p => {
+      radii[p].visible = true;
+    });
+  }
+  // set camera axis, longitude, latitude
+  camera.position.set(0, r, 0);
+  polarAnimator._setupZoom();
+  changeCameraFOV(polarAnimator.polarFOV)
+  camera.lookAt(0, 0, 0);
+  if (helioCenter) {
+    let rsun = planets.sun.position;
+    camera.position.set(rsun.x, r, rsun.z);
+    ellipses.sun.visible = false;
+    ellipses.earth.visible = true;
+  }
+  if (skyAnimator.isPaused) skyAnimator.play();
 }
 
 /* ------------------------------------------------------------------------ */
