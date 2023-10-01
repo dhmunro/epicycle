@@ -364,14 +364,14 @@ function togglePause() {
   if (!skyAnimator.isPaused) {
     ppToggler(PLAY_ELEM, PAUSE_ELEM);
     controls.enabled = true;
-    if (!dialogOpen) CHEVRON_ELEM.classList.remove("hidden");
+    // if (!dialogOpen) CHEVRON_ELEM.classList.remove("hidden");
     skyAnimator.pause();
   } else {
     ppToggler(PAUSE_ELEM, PLAY_ELEM);
     controls.enabled = trackingMode == "sky";
     if (!polarAnimator.isPolar) recenterEcliptic();
-    if (!dialogOpen
-        && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
+    // if (!dialogOpen
+    //     && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
     skyAnimator.play();
   }
 }
@@ -386,6 +386,7 @@ function ppToggler(elemOn, elemOff, toggler) {
 addListenerTo(PAUSE_ELEM, "click", togglePause);
 
 function toggleDialog() {
+  if (titleOpen) closeTitle();
   if (infoOpen) return;
   dialogOpen = !dialogOpen;
   if (dialogOpen) {
@@ -395,8 +396,8 @@ function toggleDialog() {
   } else {
     diaToggler(CHEVRON_ELEM, XMARK_ELEM);
     DIALOG_ELEM.style.transform = DIALOG_HIDER;
-    if (trackingMode != "sky" &&
-        !skyAnimator.isPaused) CHEVRON_ELEM.classList.add("hidden");
+    // if (trackingMode != "sky" &&
+    //     !skyAnimator.isPaused) CHEVRON_ELEM.classList.add("hidden");
   }
 }
 
@@ -840,26 +841,29 @@ class Animator {
     this.frameId = undefined;  // returned by requestAnimationFrame
     this.onFinish = undefined;  // called when animation finishes
     this._paused = true;
+    this._skipping = false;
   }
 
   play = () => {
     this._cancelPending();
     this._paused = false;
+    this._skipping = false;
     let stepper = this.stepper;
     if (stepper === undefined) {  // start new run
       let msPrev = null, iPart = 0;
       const self = this;
-      function stepper(ms) {  // argument is window.performance.now();
+
+      this.stepper = (ms) => {  // argument is window.performance.now();
         self._cancelPending();  // cancel any pending frame requests
+        const parts = self.parts;
+        let dms = 0;
         if (ms !== null) {
-          const parts = self.parts;
-          let dms = 0;
           if (msPrev !== null) {
             dms = ms - msPrev;
             if (dms <= 0) dms = 1;  // assure finite step after start
           }
           msPrev = ms;
-          while (parts[iPart].call(self, dms)) {  // iPart finished
+          while (parts[iPart].call(self, dms)) {
             iPart += 1;
             if (iPart >= parts.length) {  // whole animation finished
               self.stop();
@@ -871,15 +875,32 @@ class Animator {
             // next animation frame request callback.
             dms = 0;
           }
-        } else {
+        } else if (!self._skipping) {
           // To wake up from pause, just reset msPrev to huge value.
           // First step after pause will be very short interval (1 ms).
           msPrev = 1.e30;
+        } else {
+          // no more animation frames, just call every part of animation
+          self._skipping = false;
+          dms = 1.e20;
+          while (true) {
+            // call each part with dms=0 then dms=1e20
+            if (parts[iPart].call(self, dms) || dms) {
+              iPart += 1;
+              if (iPart >= parts.length) {
+                self.stop();
+                return;  // only way out of while loop
+              }
+              dms = 0;
+            } else {
+              dms = 1e20;
+            }
+          }
         }
         self.frameId = requestAnimationFrame(self.stepper);
       }
-      self.stepper = stepper;
-      stepper(window.performance.now());
+
+      this.stepper(window.performance.now());
     } else {  // wake up from pause
       stepper(null);
     }
@@ -891,14 +912,28 @@ class Animator {
   }
 
   stop = (noOnFinish=false) => {
-    this.pause();
-    this.stepper = undefined;
-    this.parts.forEach(p => {
-      if (p.wantsAnimatorResetCallback) p(null);
-    });
-    let onFinish = this.onFinish;
-    this.onFinish = undefined;
-    if (onFinish && !noOnFinish) onFinish.call(self);
+    if (this.stepper) {
+      this.pause();
+      if (this.neverStop) return;
+      this.stepper = undefined;
+      this.parts.forEach(p => {
+        if (p.wantsAnimatorResetCallback) p(null);
+      });
+      let onFinish = this.onFinish;
+      this.onFinish = undefined;
+      if (onFinish && !noOnFinish) onFinish.call(self);
+    }
+  }
+
+  skip = () => {
+    if (this.stepper) {
+      if (this.neverStop) {
+        this.pause();
+        return;
+      }
+      this._skipping = true;
+      this.stepper(null);
+    }
   }
 
   get isPaused() {
@@ -935,21 +970,13 @@ class PolarViewAnimator extends Animator {
   }
 
   reset() {
-    if (this.isPlaying) this.stop();
-    this.rate = Math.abs(this.rate);
-    this.rCameraMax = 0;  // rCamera goes from 0 to rCameraMax (venus 5, mars 7)
-    this.rCamera = 0;  // distance of polar view from earth (AU)
-    this.axisCamera = [0, 0, 1];
-    this.latCamera = 0;
-    this.longCamera = 0;
-    this.unpauseSky = false;
-    this._polar = false;
-    ["saturn", "jupiter", "mars", "venus", "mercury"].forEach(p => {
-      planets[p].visible = true; });
-    if (trackingMode == "mars") labels.antisun.visible = true;
-    ["earth", "venus", "mars", "gearth", "gmars"].forEach(p => {
-      radii[p].visible = false;
-    });
+    if (this.isPlaying) this.skip();
+    if (this._polar) this.jump();
+  }
+
+  jump() {
+    this.toggle();
+    this.skip();
   }
 
   toggle() {
@@ -1117,6 +1144,7 @@ const skyAnimator = new Animator(dms => {
   render();
   return false;
 });
+skyAnimator.neverStop = true;
 
 const polarAnimator = new PolarViewAnimator(skyAnimator);
 
@@ -1127,6 +1155,16 @@ class OrbitCenterSwapper extends Animator {
     this.swapTime = 2;  // time to swap in seconds
     this.frac = 0;
     this.unpauseSky = false;
+  }
+
+  reset() {
+    if (this.isPlaying) this.skip();
+    if (centerSwap) this.jump();
+  }
+
+  jump() {
+    this.toggle();
+    this.skip();
   }
 
   toggle() {
@@ -1208,6 +1246,16 @@ class HelioCenterSwapper extends Animator {
     this.swapTime = 2;  // time to swap in seconds
     this.frac = 0;
     this.unpauseSky = false;
+  }
+
+  reset() {
+    if (this.isPlaying) this.skip();
+    if (helioCenter) this.jump();
+  }
+
+  jump() {
+    this.toggle();
+    this.skip();
   }
 
   toggle() {
@@ -1781,21 +1829,9 @@ function takeTour() {
 
 function resetTracking() {
   if (infoOpen) toggleInfo();
-  if (helioAnimator.isPlaying) helioAnimator.stop();
-  if (swapAnimator.isPlaying) swapAnimator.stop();
-  polarAnimator.reset();
-  HELIO_CHECKBOX.checked = helioCenter = false;
-  disableLabeledInput(HELIO_CHECKBOX, true);
-  SWAP_CHECKBOX.checked = centerSwap = false;
-  disableLabeledInput(SWAP_CHECKBOX, true);
-  POLAR_CHECKBOX.checked = false;
-  disableLabeledInput(POLAR_CHECKBOX, true);
-  SHOW_CHECKBOX.checked = false;
-  showOrbits = false;
-  disableLabeledInput(SHOW_CHECKBOX, false);
-  camera.position.set(0, 0, 0);
-  camera.up.set(0, 1, 0);
-  camera.lookAt(-1, 0, 0);
+  if (helioAnimator.isPlaying || helioCenter) helioAnimator.reset();
+  if (swapAnimator.isPlaying || centerSwap) swapAnimator.reset();
+  if (polarAnimator.isPlaying || polarAnimator.isPolar) polarAnimator.reset();
   checkRadioButton(0);
   setTrackingMode("sky");
   if (skyAnimator.isPaused) skyAnimator.play();
@@ -1878,21 +1914,20 @@ function setDialogTo(section) {
     showOrbits = true;
     checkRadioButton(2);
     setTrackingMode("venus");
-    if (skyAnimator.isPaused) skyAnimator.play();
+    if (skyAnimator.isPaused) togglePause();
   } else if (section == "venus2") {
+    skyAnimator.pause();
     SHOW_CHECKBOX.checked = true;
     showOrbits = true;
     checkRadioButton(2);
     setTrackingMode("venus");
-    jumpToPolar("venus");
+    jumpToPolar();
   } else if (section == "venus3") {
     SHOW_CHECKBOX.checked = true;
     showOrbits = true;
     checkRadioButton(2);
     setTrackingMode("venus");
-    HELIO_CHECKBOX.checked = true;
-    helioCenter = true;
-    jumpToPolar("venus");
+    jumpToPolar(true);
   } else if (section == "mars1") {
     SHOW_CHECKBOX.checked = true;
     showOrbits = true;
@@ -1900,7 +1935,7 @@ function setDialogTo(section) {
     centerSwap = true;
     checkRadioButton(3);
     setTrackingMode("mars");
-    if (skyAnimator.isPaused) skyAnimator.play();
+    if (skyAnimator.isPaused) togglePause();
   } else if (section == "mars2") {
     SHOW_CHECKBOX.checked = true;
     showOrbits = true;
@@ -1908,56 +1943,35 @@ function setDialogTo(section) {
     centerSwap = true;
     checkRadioButton(3);
     setTrackingMode("mars");
-    jumpToPolar("mars");
+    jumpToPolar();
+  } else if (section == "mars3") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    checkRadioButton(3);
+    setTrackingMode("mars");
+    jumpToPolar();
+  } else if (section == "mars4") {
+    SHOW_CHECKBOX.checked = true;
+    showOrbits = true;
+    checkRadioButton(3);
+    setTrackingMode("mars");
+    jumpToPolar(true);
   }
 }
 
 window.setDialogTo = setDialogTo;  // expose so accessible as onClick
 
-function jumpToPolar(planet) {
-  const r = PolarViewAnimator.rCameraMaxs[planet];
-  const label = (planet == "venus")? labels.sun : labels.sunmars;
-  polarAnimator.rCameraMax = r
-  polarAnimator.label = label;
-  polarAnimator.rate = -Math.abs(polarAnimator.rate);
-  polarAnimator.unpauseSky = false;
-  polarAnimator._polar = true;
-  polarAnimator.rCamera = r;
-  polarAnimator.latCamera = Math.PI/2;
-  disableLabeledInput(SHOW_CHECKBOX, true);
-  POLAR_CHECKBOX.checked = true;
-  disableLabeledInput(POLAR_CHECKBOX, helioCenter);
-  if (planet == "venus") {
-    disableLabeledInput(HELIO_CHECKBOX, false);
-  } else {
-    disableLabeledInput(HELIO_CHECKBOX, !centerSwap);
+function jumpToPolar(helio=false) {
+  if (!polarAnimator.isPolar) {
+    POLAR_CHECKBOX.checked = true;
+    polarAnimator.jump();
+    if (helio) {
+      HELIO_CHECKBOX.checked = true;
+      if (!helioCenter) helioAnimator.jump();
+      disableLabeledInput(HELIO_CHECKBOX, false);
+    }
   }
-  ["saturn", "jupiter", "mercury"].forEach(p => {
-    planets[p].visible = false; });
-  if (planet == "mars") {
-    planets.venus.visible = false;
-    labels.antisun.visible = false;
-    ["earth", "mars", "gearth", "gmars"].forEach(p => {
-      radii[p].visible = true;
-    });
-  } else {
-    planets.mars.visible = false;
-    ["earth", "venus"].forEach(p => {
-      radii[p].visible = true;
-    });
-  }
-  // set camera axis, longitude, latitude
-  camera.position.set(0, r, 0);
-  polarAnimator._setupZoom();
-  changeCameraFOV(polarAnimator.polarFOV)
-  camera.lookAt(0, 0, 0);
-  if (helioCenter) {
-    let rsun = planets.sun.position;
-    camera.position.set(rsun.x, r, rsun.z);
-    ellipses.sun.visible = false;
-    ellipses.earth.visible = true;
-  }
-  if (skyAnimator.isPaused) skyAnimator.play();
+  if (skyAnimator.isPaused) togglePause();
 }
 
 /* ------------------------------------------------------------------------ */
