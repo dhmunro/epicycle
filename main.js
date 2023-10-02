@@ -295,6 +295,12 @@ function unswapCenters() {
   SWAP_CHECKBOX.checked = false;
 }
 
+function skipPlayingAnimations() {
+  if (polarAnimator.isPlaying) polarAnimator.skip();
+  if (swapAnimator.isPlaying) swapAnimator.skip();
+  if (helioAnimator.isPlaying) helioAnimator.skip();
+}
+
 const DATE_BOX = document.getElementById("date-box");
 addListenerTo(DATE_BOX, "change", setStartDate);
 const RESTART_BUTTON = document.getElementById("restart");
@@ -306,11 +312,13 @@ document.getElementById("fullscreen").addEventListener("click",
 let showOrbits=false, centerSwap=false;
 const SHOW_CHECKBOX = document.getElementById("showorb");
 SHOW_CHECKBOX.addEventListener("change", (e) => {
+  skipPlayingAnimations();
   showOrbits = e.target.checked;
   setTrackingMode(trackingMode);
 });
 const SWAP_CHECKBOX = document.getElementById("swap");
 SWAP_CHECKBOX.addEventListener("change", (e) => {
+  skipPlayingAnimations();
   if (centerSwap == !e.target.checked) {
     if (polarAnimator.isPolar) {
       swapAnimator.toggle();
@@ -322,6 +330,7 @@ SWAP_CHECKBOX.addEventListener("change", (e) => {
 });
 const POLAR_CHECKBOX = document.getElementById("polar");
 POLAR_CHECKBOX.addEventListener("change", (e) => {
+  skipPlayingAnimations();
   if (e.target.checked) {
     ["saturn", "jupiter", "mercury"].forEach(p => {
       planets[p].visible = false; });
@@ -333,6 +342,7 @@ POLAR_CHECKBOX.addEventListener("change", (e) => {
 let helioCenter = false;
 const HELIO_CHECKBOX = document.getElementById("helio");
 HELIO_CHECKBOX.addEventListener("change", (e) => {
+  skipPlayingAnimations();
   if (helioCenter == !e.target.checked) {
     if (!helioCenter) disableLabeledInput(SWAP_CHECKBOX, true);
     helioAnimator.toggle();
