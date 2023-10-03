@@ -374,14 +374,11 @@ function togglePause() {
   if (!skyAnimator.isPaused) {
     ppToggler(PLAY_ELEM, PAUSE_ELEM);
     controls.enabled = true;
-    // if (!dialogOpen) CHEVRON_ELEM.classList.remove("hidden");
     skyAnimator.pause();
   } else {
     ppToggler(PAUSE_ELEM, PLAY_ELEM);
     controls.enabled = trackingMode == "sky";
     if (!polarAnimator.isPolar) recenterEcliptic();
-    // if (!dialogOpen
-    //     && trackingMode!="sky") CHEVRON_ELEM.classList.add("hidden");
     skyAnimator.play();
   }
 }
@@ -406,8 +403,6 @@ function toggleDialog() {
   } else {
     diaToggler(CHEVRON_ELEM, XMARK_ELEM);
     DIALOG_ELEM.style.transform = DIALOG_HIDER;
-    // if (trackingMode != "sky" &&
-    //     !skyAnimator.isPaused) CHEVRON_ELEM.classList.add("hidden");
   }
 }
 
@@ -1663,6 +1658,7 @@ function toggleInfo() {
       infoUnseen = false;
       if (!dialogOpen) toggleDialog();
     }
+    if (skyAnimator.isPaused) togglePause();
   }
 }
 const scrollSections = {};
@@ -1845,7 +1841,6 @@ function resetTracking() {
   checkRadioButton(0);
   setTrackingMode("sky");
   if (skyAnimator.isPaused) skyAnimator.play();
-  togglePause();
   gotoStartDate();
 }
 
@@ -1924,7 +1919,6 @@ function setDialogTo(section) {
     showOrbits = true;
     checkRadioButton(2);
     setTrackingMode("venus");
-    if (skyAnimator.isPaused) togglePause();
   } else if (section == "venus2") {
     skyAnimator.pause();
     SHOW_CHECKBOX.checked = true;
@@ -1945,7 +1939,6 @@ function setDialogTo(section) {
     centerSwap = true;
     checkRadioButton(3);
     setTrackingMode("mars");
-    if (skyAnimator.isPaused) togglePause();
   } else if (section == "mars2") {
     SHOW_CHECKBOX.checked = true;
     showOrbits = true;
@@ -1981,7 +1974,6 @@ function jumpToPolar(helio=false) {
       disableLabeledInput(HELIO_CHECKBOX, false);
     }
   }
-  if (skyAnimator.isPaused) togglePause();
 }
 
 /* ------------------------------------------------------------------------ */
