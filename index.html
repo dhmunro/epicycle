@@ -75,6 +75,9 @@
           font: 1.5em 'Merriweather Sans', Arial, sans-serif;
           color: black;
       }
+      #date-box, #restart {
+          font-size: 1em;
+      }
       .title-container {
           position: absolute;
           top: 50px;
@@ -198,7 +201,7 @@
           Drag sky to look around!</p>
         <p>Start:
           <input type="text" id="date-box" name="date"
-                 value="2000-01-01" maxLength="11" size="11"/>
+                 value="2000-01-01" maxLength="11" size="8"/>
           <button id="restart">Go To Start</button>
         </p>
         <label><input type="radio" id="sky" name="pointing" value="sky"
@@ -349,9 +352,9 @@
           simpler case), Venus as a representative of the faster
           planets, and Mars as a representative of the slower
           planets.</p>
-        <h2><a id="sun-section" href="#sun-section"
+        <h3><a id="sun-section" href="#sun-section"
                onclick="setDialogTo('sun')">
-            Sun's Motion Not Quite Uniform</a></h2>
+            Sun's Motion Not Quite Uniform</a></h3>
         <p>While the motion of the Sun is far simpler than the
           planets, it is not as simple as it could be.  Although
           confined exactly to the ecliptic, the Sun speeds up and
@@ -381,9 +384,9 @@
           particular position on the ecliptic.  In other words,
           although the speed of the Sun varies, the pattern of those
           variations repeats exactly every year.</p>
-        <h2><a id="venus-section" href="#venus-section"
+        <h3><a id="venus-section" href="#venus-section"
                onclick="setDialogTo('venus')">
-            How Venus Moves</a></h2>
+            How Venus Moves</a></h3>
         <p>Venus oscillates back and forth from about 48 degrees west
           of the Sun to 48 degrees east of the Sun, completing one
           cycle roughly every 584 days.  When west of the Sun, Venus
@@ -410,9 +413,9 @@
           of planetary motion, worked out in detail by ancient Greek
           astronomers, which was our best solar system model for
           nearly two millenia.</p>
-        <h2><a id="mars-section" href="#mars-section"
+        <h3><a id="mars-section" href="#mars-section"
                onclick="setDialogTo('mars')">
-            How Mars Moves</a></h2>
+            How Mars Moves</a></h3>
         <p>The motion of Mars is much harder to describe than the
           motion of Venus.  The connection to the Sun is much subtler:
           Mars is always in the middle of its retrograde motion when
@@ -656,13 +659,13 @@
             Mars's heliocentric orbit</a></h3>
         <p>Finally, we arrive at our modern heliocentric model for the
           orbits of Mars and the Earth.  The 180 degree rotation
-          relates the orbit of the Sun in Tycho's model to the orbit
+          relates the orbit of the Sun in Tycho&apos;s model to the orbit
           of Earth in the heliocentric model, just as it did for
           Venus.  Again, you should check and uncheck the sun center
           box several times to be sure you understand this
           relationship.  Thus, the ancient epicycle model of Mars is
           two steps removed from our modern model: First, the orbital
-          centers are swapped; second the Sun's orbit is rotated 180
+          centers are swapped; second the Sun&apos;s orbit is rotated 180
           degrees to become the Earth's orbit.</p>
         <p>The way we constructed the ancient epicycle model for Mars,
           using the parallelogram with three corners at Mars, Earth,
@@ -682,6 +685,48 @@
           the epicycle models admit a description of the orbits of
           both Venus and Mars which are mathematically equivalent to
           the heliocentric planetary orbits we learned in school.</p>
+        <h2><a id="survey-section" href="#survey-section"
+               onclick="setDialogTo('survey4')">
+            How to Survey Orbits</a></h2>
+        <p>The orbits you have seen so far were drawn by cheating -
+          looking up the answer on the
+          <a href="https://ssd.jpl.nasa.gov/planets/approx_pos.html">
+            JPL website</a>.  But how could you draw orbits before
+          anyone had worked out all those pretty formulas - where did
+          the formulas come from?  The original idea was that Venus
+          circles the Sun while the Sun circles us on Earth, so your
+          first guess is that both orbits are circles, traced by the
+          Sun and Venus at uniform rates.  But that theory can't be
+          quite right: The Sun speeds up and slows down a bit as it
+          goes around.  Naturally, you begin to tweak your model to
+          make it agree better, and to make more accurate measurements
+          to check whether you've got it right...</p>
+        <p>Practical science usually follows this pattern: Make a
+          guess, then fiddle around changing parameters or adding
+          corrections until your model matches what you see well
+          enough for your needs.  Kepler&apos;s laws of planetary
+          motion seem to be a particularly inspired example of this
+          sort of progress: He tweaks the circular deferents and
+          epicycles to be elliptical, and invents a clever equal area
+          law to replace Greek equants.  However, Kepler's real
+          breakthrough was spectacularly original: He figured out how
+          to leverage the periodicity of the orbits in order to
+          actually survey their shapes.  The greatest scientific minds
+          had been pondering this very problem, looking at very nearly
+          the same data, for close to two millenia - and Kepler found
+          a new way to think about it.</p>
+        <p>Unlike anyone before him, Kepler's ellipse and equal area
+          fits are not merely to the projected directions of planets
+          on the sky, but to geometrically surveyed points in three
+          dimensions.  The fact that his guesses for how to fit his
+          survey points happen to foreshadow Newton's analysis is
+          striking, but misses the point of the history.  Kepler's
+          unmatched achievement is his 3D survey of the orbits of the
+          Earth and Mars.  For the first time, Kepler looked down on
+          the solar system from that vantage point far above the
+          ecliptic, the same way you look down on the terrain of a
+          map.  He was seeing the solar system emerge from his survey
+          points, not guessing.</p>
     </div></div>
     <script src="./ephemeris.js"></script>
     <script type="module" src="./main.js"></script>
